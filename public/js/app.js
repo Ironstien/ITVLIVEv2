@@ -7,6 +7,7 @@
   const GUEST_NAME_KEY = 'itv-guest-name';
   const navUser = document.getElementById('nav-user');
   const navAuthLink = document.getElementById('nav-auth-link');
+  const siteVersion = document.getElementById('site-version');
   const navModToolsWrap = document.getElementById('nav-mod-tools-wrap');
   const navAdminPanelWrap = document.getElementById('nav-admin-panel-wrap');
   const chatForm = document.getElementById('chat-form');
@@ -525,11 +526,17 @@
     }
   }
 
+  function updateSiteVersion(version) {
+    if (!siteVersion || !version) return;
+    siteVersion.textContent = `v${version}`;
+  }
+
   Promise.all([
     fetch('/health').then((r) => r.json()),
     typeof ITVAuth !== 'undefined' ? ITVAuth.fetchMe() : Promise.resolve(null),
   ])
     .then(async ([health, user]) => {
+      updateSiteVersion(health?.version);
       await setAccountUser(user);
       if (!user && navUser && health.ok) {
         updateNavLabel(`${getGuestName()} · guest`);
