@@ -159,7 +159,7 @@ async function loginUser({ email, password }) {
     return { error: 'Email and password are required' };
   }
 
-  const user = await User.findOne({ email: normalizedEmail });
+  let user = await User.findOne({ email: normalizedEmail });
   if (!user) return { error: 'Invalid email or password' };
   if (user.bannedAt) return { error: 'Account is banned' };
 
