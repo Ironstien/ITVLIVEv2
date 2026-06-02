@@ -11,6 +11,7 @@ const { registerSockets, room } = require('./sockets');
 const { isTestDjEnabled, TEST_DJ_DISPLAY_NAME } = require('./config/testDj');
 const { loadPlatformState } = require('./services/platform');
 const { migrateLegacyStaffRoles } = require('./services/staff');
+const { migrateLegacyPlaylistItemIndexes } = require('./services/playlist');
 const { ensureFounderAdminsInDb } = require('./config/founderAdmins');
 
 validateProductionEnv();
@@ -104,6 +105,7 @@ app.set('io', io);
 
 async function start() {
   await connectDB();
+  await migrateLegacyPlaylistItemIndexes();
   await migrateLegacyStaffRoles();
   await ensureFounderAdminsInDb();
   await loadPlatformState();

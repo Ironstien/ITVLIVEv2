@@ -1,4 +1,5 @@
 const { Playlist, PlaylistItem, User } = require('../models');
+const { isDbConnected } = require('../config/db');
 const { parseYoutubeId, fetchYoutubeMeta } = require('./youtube');
 const { evaluateAndGrantBadgesById } = require('./badges');
 
@@ -439,6 +440,29 @@ async function exportPlaylist(userId, playlistId) {
   return { playlist, text };
 }
 
+const LEGACY_PLAYLIST_ITEM_INDEXES = ['userId_1_videoId_1', 'userId_1_sortOrder_1'];
+
+/** Drop pre-v2 playlist item indexes (userId + videoId) that block new inserts. */
+async function migrateLegacyPlaylistItemIndexes() {
+  if (!isDbConnected()) return { ok: true, dropped: [] };
+
+  const collection = PlaylistItem.collection;
+  const indexes = await collection.indexes();
+  const dropped = [];
+
+  for (const name of LEGACY_PLAYLIST_ITEM_INDEXES) {
+    if (indexes.some((idx) => idx.name === name)) {
+      await collection.dropIndex(name);
+      dropped.push(name);
+      console.log(`[playlist] dropped legacy ${name} index`);
+    }
+  }
+
+  await PlaylistItem.syncIndexes();
+
+  return { ok: true, dropped };
+}
+
 module.exports = {
   setActivePlaylist,
   getActivePlaylist,
@@ -457,5 +481,6 @@ module.exports = {
   movePlayedItemToBottom,
   importPlaylist,
   exportPlaylist,
+  migrateLegacyPlaylistItemIndexes,
   EXPORT_URL,
 };
