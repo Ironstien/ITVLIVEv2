@@ -170,7 +170,9 @@ async function loginUser({ email, password }) {
   await reconcileUserLevel(user);
   await evaluateAndGrantBadges(user);
   user = await User.findById(user._id);
+  if (!user) return { error: 'Login failed' };
   const publicUser = toPublicUser(user);
+  if (!publicUser?.id) return { error: 'Login failed' };
   const token = signToken(publicUser.id);
   return { ok: true, user: publicUser, token };
 }

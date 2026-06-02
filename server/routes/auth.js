@@ -49,7 +49,12 @@ router.post('/login', async (req, res) => {
     res.json({ ok: true, user: result.user, token: result.token });
   } catch (err) {
     console.error('[auth] login failed:', err.message);
-    res.status(500).json({ error: 'Login failed' });
+    if (err.stack) console.error(err.stack);
+    const detail =
+      process.env.NODE_ENV !== 'production' && err.message
+        ? `Login failed: ${err.message}`
+        : 'Login failed';
+    res.status(500).json({ error: detail });
   }
 });
 
