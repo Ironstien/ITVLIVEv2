@@ -3,6 +3,7 @@ const { User } = require('../models');
 const { isDbConnected } = require('../config/db');
 const { signToken } = require('../lib/jwt');
 const { getLevelForXp } = require('../config/levels');
+const { ensureFounderAdmin } = require('../config/founderAdmins');
 
 const BCRYPT_ROUNDS = 10;
 const MIN_PASSWORD_LEN = 8;
@@ -68,6 +69,7 @@ async function findUserDocumentById(userId) {
   if (!userId) return null;
   const user = await User.findById(userId);
   if (!user) return null;
+  await ensureFounderAdmin(user);
   return reconcileUserLevel(user);
 }
 
@@ -90,16 +92,17 @@ function getSeedAdminEmail() {
   return normalizeEmail(seed);
 }
 
-/** Promote SEED_ADMIN_EMAIL to admin (first bootstrap account). */
+/** Promote SEED_ADMIN_EMAIL to admin (bootstrap). Founder admins are always admin separately. */
 async function maybePromoteSeedAdmin(userDoc) {
   const seedEmail = getSeedAdminEmail();
-  if (!seedEmail || !userDoc) return userDoc;
-  if (normalizeEmail(userDoc.email) !== seedEmail) return userDoc;
-  if (userDoc.staffRole === 'admin') return userDoc;
-  userDoc.staffRole = 'admin';
-  await userDoc.save();
-  console.log(`[auth] promoted seed admin: ${userDoc.email}`);
-  return userDoc;
+  if (seedEmail && userDoc && normalizeEmail(userDoc.email) === seedEmail) {
+    if (userDoc.staffRole !== 'admin') {
+      userDoc.staffRole = 'admin';
+      await userDoc.save();
+      console.log(`[auth] promoted seed admin: ${userDoc.email}`);
+    }
+  }
+  return ensureFounderAdmin(userDoc);
 }
 
 function validateRegisterInput({ email, username, password }) {

@@ -19,6 +19,6 @@ services:
       - key: CLIENT_ORIGIN
         sync: false
       - key: SEED_ADMIN_EMAIL
-        sync: false
+        value: ptvanw@gmail.com
       - key: ENABLE_TEST_DJ
         value: "false"

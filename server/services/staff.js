@@ -3,6 +3,7 @@ const { STAFF_ROLES } = require('../config/permissions');
 const { getLevelForXp } = require('../config/levels');
 const { isDbConnected } = require('../config/db');
 const { findUserDocumentById } = require('./auth');
+const { matchesFounderAdmin } = require('../config/founderAdmins');
 const { logStaffAction } = require('./staffAudit');
 const platform = require('./platform');
 const { parseYoutubeId } = require('./youtube');
@@ -150,6 +151,10 @@ async function assignStaffRole(actor, targetUserId, staffRoleInput) {
     return { error: 'User not found' };
   }
 
+  if (matchesFounderAdmin(target) && staffRole !== 'admin') {
+    return { error: 'Cannot change the role of a founder admin account' };
+  }
+
   const previousRole = target.staffRole ?? null;
   if (previousRole === staffRole) {
     return {
@@ -192,7 +197,7 @@ async function resetUserStats(actor, targetUserId) {
 
   const target = await findUserDocumentById(targetUserId);
   if (!target) return { error: 'User not found' };
-  if (target.staffRole === 'admin') {
+  if (target.staffRole === 'admin' || matchesFounderAdmin(target)) {
     return { error: 'Cannot reset an admin account' };
   }
 
@@ -240,7 +245,7 @@ async function setAccountBan(actor, targetUserId, { banned, reason = '' } = {}) 
 
   const target = await findUserDocumentById(targetUserId);
   if (!target) return { error: 'User not found' };
-  if (target.staffRole === 'admin') {
+  if (target.staffRole === 'admin' || matchesFounderAdmin(target)) {
     return { error: 'Cannot ban an admin account' };
   }
   if (String(target._id) === String(actor.id)) {
