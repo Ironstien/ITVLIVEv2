@@ -1361,11 +1361,26 @@ body.vinyl-pit-collapsed .vinyl-pit__strip {
 }
 
 @media (min-width: 769px) {
+  .site-nav__menu-toggle {
+    display: none;
+  }
+
   .site-nav__drawer {
     display: flex;
     flex: 1;
     justify-content: center;
     min-width: 0;
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
   }
 
   .site-nav__drawer .nav-links {
@@ -1375,9 +1390,8 @@ body.vinyl-pit-collapsed .vinyl-pit__strip {
   }
 }
 
-/* Hamburger + drawer toggle (mobile overlay) */
+/* Hamburger + drawer (see desktop/mobile rules below — do not set display here) */
 .site-nav__menu-toggle {
-  display: none;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
@@ -1403,15 +1417,15 @@ body.vinyl-pit-collapsed .vinyl-pit__strip {
   border-color: var(--purple-mid);
 }
 
-.site-nav__drawer {
-  display: none;
-}
-
 .site-nav__drawer-backdrop {
   display: none;
 }
 
 @media (max-width: 768px) {
+  .site-nav__drawer:not(.is-open) {
+    display: none;
+  }
+
   .site-nav__drawer {
     position: fixed;
     top: var(--nav-height);
