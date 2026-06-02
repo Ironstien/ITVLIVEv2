@@ -88,7 +88,8 @@
     --left-playlist-width: 280px;
     --right-panel-width: 280px;
     --panel-strip-width: 40px;
-    --player-min-height: 200px;
+    --player-min-height: 180px;
+    --mobile-panel-expanded-min: min(45vh, 320px);
     --player-stage-gap-min: 0.4rem;
     --alerts-banner-height: 2rem;
     --vinyl-pit-height-open: 168px;

@@ -1,16 +1,19 @@
 /**
  * ITVLive v2 — responsive stage layout.
- * Collapsible side panels (48px strip), auto-collapse playlist first,
+ * Desktop: collapsible side panels (48px strip), auto-collapse playlist first,
  * collapsible vinyl pit (48px strip), fluid 16:9 player, DJ flanks on player edges.
+ * Mobile (≤768px): vertical stack, scrollable stage, one panel open at a time.
  */
 (function () {
   const STORAGE_KEY = 'itv-panel-layout';
+  const MOBILE_MQ = window.matchMedia('(max-width: 768px)');
 
   const state = {
     userCollapsed: { playlist: false, chat: false, vinylPit: false },
     autoCollapsed: { playlist: false, chat: false, vinylPit: false },
     /** User expanded pit on a short viewport — block auto-collapse until they collapse again */
     vinylPitPinnedOpen: false,
+    mobileDefaultsApplied: false,
   };
 
   const playerZone = document.querySelector('.player-zone');
@@ -30,6 +33,10 @@
     return px || fallback;
   }
 
+  function isMobileLayout() {
+    return MOBILE_MQ.matches;
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -47,6 +54,9 @@
       if (typeof parsed?.vinylPitPinnedOpen === 'boolean') {
         state.vinylPitPinnedOpen = parsed.vinylPitPinnedOpen;
       }
+      if (typeof parsed?.mobileDefaultsApplied === 'boolean') {
+        state.mobileDefaultsApplied = parsed.mobileDefaultsApplied;
+      }
     } catch (_) {
       /* ignore corrupt storage */
     }
@@ -63,6 +73,7 @@
             vinylPit: state.userCollapsed.vinylPit,
           },
           vinylPitPinnedOpen: state.vinylPitPinnedOpen,
+          mobileDefaultsApplied: state.mobileDefaultsApplied,
         })
       );
     } catch (_) {
@@ -92,7 +103,22 @@
     return left + right + playerMinW + chrome;
   }
 
+  function applyMobileDefaultsOnce() {
+    if (!isMobileLayout() || state.mobileDefaultsApplied) return;
+    state.userCollapsed.playlist = true;
+    state.userCollapsed.chat = true;
+    state.mobileDefaultsApplied = true;
+    saveState();
+  }
+
   function updateAutoCollapse() {
+    if (isMobileLayout()) {
+      state.autoCollapsed.playlist = false;
+      state.autoCollapsed.chat = false;
+      state.autoCollapsed.vinylPit = false;
+      return;
+    }
+
     const viewportW = document.documentElement.clientWidth;
     const viewportH = window.innerHeight;
     const pitAutoMaxH = readCssPx('--vinyl-pit-auto-collapse-max-height', 800);
@@ -121,6 +147,7 @@
   }
 
   function applyLayoutClasses() {
+    document.body.classList.toggle('layout-mobile-stack', isMobileLayout());
     document.body.classList.toggle('panel-playlist-collapsed', isPanelCollapsed('playlist'));
     document.body.classList.toggle('panel-chat-collapsed', isPanelCollapsed('chat'));
     document.body.classList.toggle('vinyl-pit-collapsed', isVinylPitCollapsed());
@@ -131,20 +158,24 @@
 
     const zoneW = playerZone.clientWidth;
     const zoneH = playerZone.clientHeight;
-    if (zoneW <= 0 || zoneH <= 0) return;
 
     const minW = readCssPx('--player-min-width', (320 * 16) / 9);
     const minH = readCssPx('--player-min-height', 320);
 
-    let playerW = zoneW;
-    playerW = Math.max(minW, playerW);
+    if (zoneW <= 0) return;
 
+    let playerW = Math.max(minW, zoneW);
     let playerH = (playerW * 9) / 16;
     playerH = Math.max(minH, playerH);
 
-    if (playerH > zoneH) {
+    if (!isMobileLayout() && zoneH > 0 && playerH > zoneH) {
       playerH = Math.max(minH, zoneH);
       playerW = Math.max(minW, (playerH * 16) / 9);
+    }
+
+    if (isMobileLayout() && zoneW > 0) {
+      playerW = Math.min(playerW, zoneW);
+      playerH = Math.max(minH, (playerW * 9) / 16);
     }
 
     root.style.setProperty('--player-video-width', `${Math.round(playerW * 100) / 100}px`);
@@ -152,6 +183,7 @@
   }
 
   function layout() {
+    applyMobileDefaultsOnce();
     updateAutoCollapse();
     applyLayoutClasses();
     requestAnimationFrame(updatePlayerSize);
@@ -159,6 +191,13 @@
 
   function setUserPanelCollapsed(side, collapsed) {
     if (side !== 'playlist' && side !== 'chat') return;
+
+    if (isMobileLayout() && !collapsed) {
+      const other = side === 'playlist' ? 'chat' : 'playlist';
+      state.userCollapsed[other] = true;
+      state.autoCollapsed[other] = false;
+    }
+
     state.userCollapsed[side] = collapsed;
     if (!collapsed) state.autoCollapsed[side] = false;
     saveState();
@@ -172,16 +211,49 @@
       state.vinylPitPinnedOpen = false;
     } else {
       state.autoCollapsed.vinylPit = false;
-      state.vinylPitPinnedOpen = true;
+      state.vinylPitPinnedOpen = !isMobileLayout();
     }
     saveState();
     layout();
   }
 
+  function setupMobilePanelHeaderExpand() {
+    const chatHeader = document.querySelector('.panel-chat .panel-side__header');
+    const playlistHeader = document.querySelector('.panel-playlist .panel-header-with-action');
+
+    function onHeaderActivate(side, el) {
+      if (!el) return;
+      el.addEventListener('click', (e) => {
+        if (!isMobileLayout()) return;
+        if (e.target.closest('[data-panel-collapse], button, a, input, select, textarea')) return;
+        if (!isPanelCollapsed(side)) return;
+        setUserPanelCollapsed(side, false);
+      });
+    }
+
+    onHeaderActivate('chat', chatHeader);
+    onHeaderActivate('playlist', playlistHeader);
+
+    const pitHeader = document.querySelector('.vinyl-pit__header');
+    if (pitHeader) {
+      pitHeader.addEventListener('click', (e) => {
+        if (!isMobileLayout()) return;
+        if (e.target.closest('[data-vinyl-pit-collapse], button')) return;
+        if (!isVinylPitCollapsed()) return;
+        setUserVinylPitCollapsed(false);
+      });
+    }
+  }
+
   document.querySelectorAll('[data-panel-collapse]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const side = btn.getAttribute('data-panel-collapse');
-      if (side) setUserPanelCollapsed(side, true);
+      if (!side) return;
+      if (isMobileLayout() && isPanelCollapsed(side)) {
+        setUserPanelCollapsed(side, false);
+        return;
+      }
+      setUserPanelCollapsed(side, true);
     });
   });
 
@@ -193,7 +265,13 @@
   });
 
   document.querySelectorAll('[data-vinyl-pit-collapse]').forEach((btn) => {
-    btn.addEventListener('click', () => setUserVinylPitCollapsed(true));
+    btn.addEventListener('click', () => {
+      if (isMobileLayout() && isVinylPitCollapsed()) {
+        setUserVinylPitCollapsed(false);
+        return;
+      }
+      setUserVinylPitCollapsed(true);
+    });
   });
 
   document.querySelectorAll('[data-vinyl-pit-expand]').forEach((btn) => {
@@ -206,11 +284,18 @@
     resizeTimer = setTimeout(layout, 50);
   });
 
+  if (typeof MOBILE_MQ.addEventListener === 'function') {
+    MOBILE_MQ.addEventListener('change', layout);
+  } else if (typeof MOBILE_MQ.addListener === 'function') {
+    MOBILE_MQ.addListener(layout);
+  }
+
   if (typeof ResizeObserver !== 'undefined' && playerZone) {
     new ResizeObserver(() => updatePlayerSize()).observe(playerZone);
   }
 
   loadState();
+  setupMobilePanelHeaderExpand();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', layout);
   } else {
