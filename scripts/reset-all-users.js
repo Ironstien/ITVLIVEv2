@@ -3,12 +3,12 @@
  * Wipe all users and user-owned data, then create the founder admin account.
  *
  * Production (e.g. Render Shell) — set env vars in the dashboard, then run:
- *   node scripts/reset-all-users.js
+ *   node scripts/reset-all-users.js --confirm DELETE_ALL_USERS --password "YourPassword"
  *
- * Required env:
- *   MONGODB_URI
- *   CONFIRM_RESET_ALL_USERS=DELETE_ALL_USERS
- *   ITV_FOUNDER_PASSWORD=<password for ptvanw@gmail.com, min 8 chars>
+ * Required:
+ *   MONGODB_URI (in .env or env)
+ *   Confirm: CONFIRM_RESET_ALL_USERS=DELETE_ALL_USERS  OR  --confirm DELETE_ALL_USERS
+ *   Password: ITV_FOUNDER_PASSWORD  OR  --password "min 8 chars"
  *
  * Optional:
  *   ITV_FOUNDER_EMAIL (default: ptvanw@gmail.com from founder config)
@@ -32,6 +32,23 @@ const {
 
 const CONFIRM_VALUE = 'DELETE_ALL_USERS';
 
+function getConfirmFlag() {
+  if (process.env.CONFIRM_RESET_ALL_USERS === CONFIRM_VALUE) return true;
+  const args = process.argv.slice(2);
+  const idx = args.indexOf('--confirm');
+  if (idx !== -1 && args[idx + 1] === CONFIRM_VALUE) return true;
+  return false;
+}
+
+function getFounderPassword() {
+  const fromEnv = String(process.env.ITV_FOUNDER_PASSWORD || '').trim();
+  if (fromEnv) return fromEnv;
+  const args = process.argv.slice(2);
+  const idx = args.indexOf('--password');
+  if (idx !== -1 && args[idx + 1]) return String(args[idx + 1]);
+  return '';
+}
+
 async function deleteAllUserData() {
   const results = {};
 
@@ -52,7 +69,7 @@ async function createFounderAdmin() {
     .trim()
     .toLowerCase();
   const username = String(process.env.ITV_FOUNDER_USERNAME || founder.username).trim();
-  const password = String(process.env.ITV_FOUNDER_PASSWORD || '');
+  const password = getFounderPassword();
 
   if (!email.includes('@')) {
     throw new Error('Invalid founder email');
@@ -76,20 +93,22 @@ async function createFounderAdmin() {
 }
 
 async function main() {
-  if (process.env.CONFIRM_RESET_ALL_USERS !== CONFIRM_VALUE) {
-    console.error(
-      `Refusing to run: set CONFIRM_RESET_ALL_USERS=${CONFIRM_VALUE} in the environment.`
-    );
+  if (!getConfirmFlag()) {
+    console.error(`Refusing to run. Confirm one of:`);
+    console.error(`  PowerShell: $env:CONFIRM_RESET_ALL_USERS="${CONFIRM_VALUE}"`);
+    console.error(`  .env file:  CONFIRM_RESET_ALL_USERS=${CONFIRM_VALUE}`);
+    console.error(`  CLI flag:   node scripts/reset-all-users.js --confirm ${CONFIRM_VALUE}`);
     process.exit(1);
   }
 
   if (!process.env.MONGODB_URI?.trim()) {
-    console.error('MONGODB_URI is not set.');
+    console.error('MONGODB_URI is not set (add it to .env or Render env).');
     process.exit(1);
   }
 
-  if (!process.env.ITV_FOUNDER_PASSWORD?.trim()) {
+  if (!getFounderPassword()) {
     console.error('ITV_FOUNDER_PASSWORD is required (min 8 characters).');
+    console.error('  Set in .env, or: --password "YourNewPassword"');
     process.exit(1);
   }
 
