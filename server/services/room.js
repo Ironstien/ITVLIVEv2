@@ -1204,6 +1204,52 @@ class Room {
     return { ok: true };
   }
 
+  /**
+   * Correct server track timing from the YouTube iframe (authoritative video length).
+   * @param {{ durationSec?: number, playbackSessionId?: string, playSessionId?: string }} payload
+   */
+  applyTrackDuration(payload = {}) {
+    if (!this.nowPlaying) return { ok: false, reason: 'idle' };
+
+    const np = this.nowPlaying;
+    if (
+      payload.playbackSessionId &&
+      np.playbackSessionId &&
+      payload.playbackSessionId !== np.playbackSessionId
+    ) {
+      return { ok: false, reason: 'session_mismatch' };
+    }
+    if (payload.playSessionId && np.playSessionId && payload.playSessionId !== np.playSessionId) {
+      return { ok: false, reason: 'session_mismatch' };
+    }
+
+    const dur = Math.floor(Number(payload.durationSec));
+    if (!Number.isFinite(dur) || dur < 1 || dur > 7200) {
+      return { ok: false, reason: 'invalid_duration' };
+    }
+
+    const prev = this._effectiveDurationSec();
+    const wasFallback = np.durationSource === 'fallback';
+    const delta = Math.abs(prev - dur);
+
+    if (!wasFallback && delta <= 2) {
+      return { ok: true, updated: false };
+    }
+
+    this.nowPlaying.durationSec = dur;
+    this.nowPlaying.durationSource = 'client';
+    this._scheduleTrackEndTimer();
+
+    console.log('[room] duration corrected', {
+      videoId: np.videoId,
+      from: prev,
+      to: dur,
+      wasFallback,
+    });
+
+    return { ok: true, updated: true, durationSec: dur };
+  }
+
   _playbackPayloadBase() {
     const serverTime = Date.now();
     if (!this.nowPlaying) {

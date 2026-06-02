@@ -332,6 +332,9 @@
     if (typeof ITVVote !== 'undefined') {
       ITVVote.init(socket);
     }
+    if (typeof ITVPlayer !== 'undefined') {
+      ITVPlayer.initSocket(socket);
+    }
     if (typeof ITVModTools !== 'undefined') {
       ITVModTools.setContext({ user: accountUser, activeSocket: socket });
     }

@@ -387,6 +387,14 @@ function registerSockets(io) {
       if (typeof ack === 'function') ack(result);
     });
 
+    socket.on('player:duration', (payload = {}, ack) => {
+      const result = room.applyTrackDuration(payload);
+      if (result.updated) {
+        broadcastPlayerSync(io, 'duration-correction');
+      }
+      if (typeof ack === 'function') ack(result);
+    });
+
     socket.on('player:ended', (payload = {}, ack) => {
       const result = room.handleClientTrackEnd(socket.id, payload);
       if (typeof ack === 'function') ack(result);

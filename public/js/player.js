@@ -17,6 +17,9 @@ const ITVPlayer = (() => {
   let volumeMuted = false;
   let unblockTimer = null;
   let volumeReinforceTimer = null;
+  let socket = null;
+  let reportedDurationKey = null;
+  let durationReportTimer = null;
 
   function readStoredVolumePrefs() {
     const saved = localStorage.getItem('itv-volume');
@@ -82,6 +85,78 @@ const ITVPlayer = (() => {
   function setIdleVisible(visible) {
     const idleEl = document.getElementById('player-idle');
     if (idleEl) idleEl.classList.toggle('hidden', !visible);
+  }
+
+  function trackDurationKey(payload) {
+    if (!payload) return '';
+    if (payload.playbackSessionId) return String(payload.playbackSessionId);
+    if (payload.playSessionId) return String(payload.playSessionId);
+    return `${payload.videoId || ''}:${payload.startedAt || 0}`;
+  }
+
+  function clearDurationReportTimer() {
+    if (durationReportTimer) {
+      clearTimeout(durationReportTimer);
+      durationReportTimer = null;
+    }
+  }
+
+  function maybeReportDuration(force = false) {
+    if (!socket || !lastSyncPayload?.videoId || !ytPlayer?.getDuration) return false;
+
+    const ytDur = Math.floor(ytPlayer.getDuration());
+    if (!Number.isFinite(ytDur) || ytDur < 1) return false;
+
+    const key = trackDurationKey(lastSyncPayload);
+    if (!force && reportedDurationKey === key) return true;
+
+    const serverDur = Number(lastSyncPayload.durationSec);
+    if (
+      !force &&
+      Number.isFinite(serverDur) &&
+      serverDur > 0 &&
+      Math.abs(serverDur - ytDur) <= 2
+    ) {
+      reportedDurationKey = key;
+      return true;
+    }
+
+    reportedDurationKey = key;
+    socket.emit('player:duration', {
+      durationSec: ytDur,
+      playbackSessionId: lastSyncPayload.playbackSessionId,
+      playSessionId: lastSyncPayload.playSessionId,
+    });
+    return true;
+  }
+
+  function scheduleDurationReport() {
+    clearDurationReportTimer();
+    let attempts = 0;
+
+    const tryReport = () => {
+      attempts += 1;
+      const key = trackDurationKey(lastSyncPayload);
+      if (maybeReportDuration() || reportedDurationKey === key || attempts >= 24) {
+        clearDurationReportTimer();
+        return;
+      }
+      durationReportTimer = setTimeout(tryReport, 250);
+    };
+
+    tryReport();
+  }
+
+  function reportTrackEnded() {
+    if (!socket || !lastSyncPayload?.videoId) return;
+    socket.emit('player:ended', {
+      playbackSessionId: lastSyncPayload.playbackSessionId,
+      playSessionId: lastSyncPayload.playSessionId,
+    });
+  }
+
+  function initSocket(sock) {
+    socket = sock;
   }
 
   function clearVolumeReinforce() {
@@ -159,6 +234,8 @@ const ITVPlayer = (() => {
 
     currentVideoId = videoId;
     lastLoadedSignature = signature;
+    reportedDurationKey = null;
+    clearDurationReportTimer();
     hideUnblockOverlay();
     clearUnblockTimer();
     clearVolumeReinforce();
@@ -183,6 +260,8 @@ const ITVPlayer = (() => {
     if (!payload.videoId) {
       lastLoadedSignature = null;
       currentVideoId = null;
+      reportedDurationKey = null;
+      clearDurationReportTimer();
       setIdleVisible(true);
       hideUnblockOverlay();
       clearUnblockTimer();
@@ -281,6 +360,10 @@ const ITVPlayer = (() => {
           if (state === YT.PlayerState.PLAYING) {
             clearUnblockTimer();
             hideUnblockOverlay();
+            scheduleDurationReport();
+          }
+          if (state === YT.PlayerState.ENDED) {
+            reportTrackEnded();
           }
           if (state === YT.PlayerState.CUED && lastSyncPayload?.videoId) {
             ytPlayer?.playVideo?.();
@@ -346,6 +429,7 @@ const ITVPlayer = (() => {
     getLastSyncPayload,
     userPlay,
     initUnblock,
+    initSocket,
     whenReady: whenApiReady,
   };
 })();

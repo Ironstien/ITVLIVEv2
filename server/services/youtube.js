@@ -38,14 +38,40 @@ function parseYoutubeId(input) {
 }
 
 function parseDurationSeconds(html) {
-  const match =
-    html.match(/"lengthSeconds":"(\d+)"/) ||
-    html.match(/"lengthSeconds":(\d+)/) ||
-    html.match(/"approxDurationMs":"(\d+)"/);
-  if (!match) return null;
-  const value = parseInt(match[1], 10);
-  if (Number.isNaN(value)) return null;
-  return match[0].includes('approxDurationMs') ? Math.round(value / 1000) : value;
+  const patterns = [
+    /"lengthSeconds":"(\d+)"/,
+    /"lengthSeconds":(\d+)/,
+    /\\"lengthSeconds\\":\\"(\d+)\\"/,
+    /\\"lengthSeconds\\":(\d+)/,
+    /"approxDurationMs":"(\d+)"/,
+    /"approxDurationMs":(\d+)/,
+    /\\"approxDurationMs\\":\\"(\d+)\\"/,
+    /"duration":"PT(\d+)M(\d+)S"/,
+    /"duration":"PT(\d+)S"/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (!match) continue;
+
+    if (pattern.source.includes('approxDurationMs')) {
+      const ms = parseInt(match[1], 10);
+      if (!Number.isNaN(ms) && ms > 0) return Math.round(ms / 1000);
+      continue;
+    }
+
+    if (pattern.source.includes('duration":"PT')) {
+      const minutes = match[2] != null ? parseInt(match[1], 10) : 0;
+      const seconds = match[2] != null ? parseInt(match[2], 10) : parseInt(match[1], 10);
+      if (!Number.isNaN(minutes) && !Number.isNaN(seconds)) return minutes * 60 + seconds;
+      continue;
+    }
+
+    const value = parseInt(match[1], 10);
+    if (!Number.isNaN(value) && value > 0) return value;
+  }
+
+  return null;
 }
 
 function youtubeThumbnailUrl(videoId) {
