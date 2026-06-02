@@ -1,0 +1,104 @@
+/**
+ * ITVLive v2 — layout tuning knobs.
+ * Load after variables.css, before layout.css.
+ */
+:root {
+  /* Minimum height of the top site navigation bar */
+  --nav-height: 2.25rem;
+
+  /* Width of the left-hand personal playlist panel (open) */
+  --left-playlist-width: 312px;
+
+  /* Width of the right-hand chat / online / queue panel (open) */
+  --right-panel-width: 312px;
+
+  /* Collapsed side-panel icon strip */
+  --panel-strip-width: 48px;
+
+  /* Effective column widths — updated by layout.js / collapse state */
+  --stage-left-width: var(--left-playlist-width);
+  --stage-right-width: var(--right-panel-width);
+
+  /* Fluid player bounds (16:9, min height 320px) */
+  --player-min-height: 320px;
+  --player-min-width: calc(var(--player-min-height) * 16 / 9);
+  --player-video-width: var(--player-min-width);
+  --player-video-height: var(--player-min-height);
+
+  /* DJ flanks — height is player height minus this inset (10px shorter than player) */
+  --current-dj-flank-inset: 10px;
+
+  /* Height of the scrolling alerts strip above the player */
+  --alerts-banner-height: 2.25rem;
+
+  /* Minimum vertical breathing room above/below the player in the centre grid */
+  --player-stage-gap-min: 0.65rem;
+
+  /* Fixed height of the open Vinyl Pit strip (centre column) */
+  --vinyl-pit-height-open: 220px;
+  --vinyl-pit-height: var(--vinyl-pit-height-open);
+
+  /* Viewport height at or below which the pit auto-collapses (layout.js) */
+  --vinyl-pit-auto-collapse-max-height: 800px;
+
+  /* Inner padding at top/bottom of the vinyl pit body */
+  --vinyl-pit-inset: 0.45rem;
+
+  /* Height reserved for each vinyl pit row label (Queue / Listening) */
+  --vinyl-pit-header-height: 1.75rem;
+
+  /* Vertical gap between the two vinyl pit rows */
+  --vinyl-pit-row-gap: 0.35rem;
+
+  /* Line height of vinyl pit row labels */
+  --vinyl-pit-label-height: 0.85rem;
+
+  /* Maximum diameter of a vinyl disc in the pit (scales down if pit is tight) */
+  --vinyl-disc-max: 66px;
+
+  /* Computed disc size from pit geometry — leave as-is unless pit math changes */
+  --vinyl-disc-size: min(
+    var(--vinyl-disc-max),
+    calc(
+      (
+        var(--vinyl-pit-height) - var(--vinyl-pit-header-height) -
+          (var(--vinyl-pit-inset) * 2) - (var(--vinyl-pit-label-height) * 2) -
+          (var(--vinyl-pit-row-gap) * 2) - 6px
+      ) / 2
+    )
+  );
+
+  /* Ratio of label circle to full disc diameter */
+  --vinyl-label-ratio: 0.42;
+
+  /* Gap between the three main stage columns and the vinyl pit row */
+  --stage-gap: 0.5rem;
+
+  /* Padding around the outer stage grid (matches column gap by default) */
+  --stage-padding: var(--stage-gap);
+}
+
+/*
+ * Mobile-only layout tuning — applies below 768px only.
+ * Desktop :root values above are unchanged at wider viewports.
+ */
+@media (max-width: 768px) {
+  :root {
+    --nav-height: 2rem;
+    --left-playlist-width: 280px;
+    --right-panel-width: 280px;
+    --panel-strip-width: 40px;
+    --player-min-height: 200px;
+    --player-stage-gap-min: 0.4rem;
+    --alerts-banner-height: 2rem;
+    --vinyl-pit-height-open: 168px;
+    --vinyl-pit-auto-collapse-max-height: 680px;
+    --vinyl-pit-inset: 0.35rem;
+    --vinyl-pit-header-height: 1.5rem;
+    --vinyl-pit-row-gap: 0.25rem;
+    --vinyl-disc-max: 48px;
+    --stage-gap: 0.35rem;
+    --stage-padding: 0.35rem;
+    --vinyl-pit-max-discs: 10;
+  }
+}

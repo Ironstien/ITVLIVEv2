@@ -1,0 +1,35 @@
+:root {
+  --void-black: #050508;
+  --void-deep: #0e0c14;
+  --void-panel: #14121c;
+  --void-border: #2a2640;
+  --purple-bright: #9b5de5;
+  --purple-mid: #7b2cbf;
+  --purple-dim: #5a189a;
+  --grey-text: #b8b8c8;
+  --grey-muted: #6b6b80;
+  --flame: #ff6b35;
+  --danger: #e63946;
+  --success: #2ec4b6;
+  --font-display: "Segoe UI", system-ui, sans-serif;
+  --font-body: "Segoe UI", system-ui, sans-serif;
+  --radius: 8px;
+  --shadow-glow: 0 0 24px rgba(155, 93, 229, 0.25);
+  --brand-glow: 0 0 12px rgba(155, 93, 229, 0.35);
+  --brand-letter-spacing: 0.14em;
+  --void-bg-base: #030304;
+  --void-bg-glow: rgba(74, 28, 120, 0.07);
+  --void-bg-glow-deep: rgba(36, 12, 62, 0.11);
+  --scrollbar-track: #3a1458;
+  --scrollbar-thumb: #ffffff;
+  /* Rank name colours */
+  --rank-novice: #9e9e9e;
+  --rank-regular: #4caf50;
+  --rank-member: #2196f3;
+  --rank-veteran: #9c27b0;
+  --rank-elite: #ff9800;
+  --rank-champion: #e53935;
+  --rank-legend: #ffd700;
+  --rank-mod: #009688;
+  --rank-admin: #e91e63;
+}

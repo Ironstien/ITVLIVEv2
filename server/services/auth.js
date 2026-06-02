@@ -1,0 +1,203 @@
+const bcrypt = require('bcryptjs');
+const { User } = require('../models');
+const { isDbConnected } = require('../config/db');
+const { signToken } = require('../lib/jwt');
+const { getLevelForXp } = require('../config/levels');
+
+const BCRYPT_ROUNDS = 10;
+const MIN_PASSWORD_LEN = 8;
+const USERNAME_RE = /^[a-zA-Z0-9_]{2,24}$/;
+
+function toPublicUser(doc) {
+  if (!doc) return null;
+  const u = doc.toObject ? doc.toObject() : doc;
+  return {
+    id: String(u._id),
+    email: u.email,
+    username: u.username,
+    level: u.level ?? 1,
+    xp: u.xp ?? 0,
+    staffRole: u.staffRole ?? null,
+    avatarUrl: u.avatarUrl ?? null,
+    customSaying: u.customSaying ?? '',
+    badges: Array.isArray(u.badges) ? u.badges : [],
+    stats: u.stats || {},
+    activePlaylistId: u.activePlaylistId ? String(u.activePlaylistId) : null,
+    createdAt: u.createdAt,
+    isBanned: Boolean(u.bannedAt),
+    banReason: u.banReason || '',
+  };
+}
+
+function toSocketUser(publicUser) {
+  if (!publicUser) return null;
+  return {
+    id: publicUser.id,
+    username: publicUser.username,
+    level: publicUser.level,
+    xp: publicUser.xp ?? 0,
+    staffRole: publicUser.staffRole,
+    avatarUrl: publicUser.avatarUrl,
+    customSaying: publicUser.customSaying,
+    badges: publicUser.badges,
+  };
+}
+
+function requireDb() {
+  if (!isDbConnected()) {
+    const err = new Error('Database not available');
+    err.status = 503;
+    throw err;
+  }
+}
+
+/** Keep stored level in sync with total XP (fixes stale level after threshold tuning). */
+async function reconcileUserLevel(doc) {
+  if (!doc) return doc;
+  const xp = doc.xp ?? 0;
+  const level = getLevelForXp(xp);
+  if ((doc.level ?? 1) !== level) {
+    doc.level = level;
+    await doc.save();
+  }
+  return doc;
+}
+
+async function findUserDocumentById(userId) {
+  requireDb();
+  if (!userId) return null;
+  const user = await User.findById(userId);
+  if (!user) return null;
+  return reconcileUserLevel(user);
+}
+
+function assertUserNotBanned(userDoc) {
+  if (userDoc?.bannedAt) {
+    return { error: 'Account is banned' };
+  }
+  return null;
+}
+
+function normalizeEmail(email) {
+  return String(email || '')
+    .trim()
+    .toLowerCase();
+}
+
+function getSeedAdminEmail() {
+  const seed = process.env.SEED_ADMIN_EMAIL;
+  if (!seed || !String(seed).trim()) return null;
+  return normalizeEmail(seed);
+}
+
+/** Promote SEED_ADMIN_EMAIL to admin (first bootstrap account). */
+async function maybePromoteSeedAdmin(userDoc) {
+  const seedEmail = getSeedAdminEmail();
+  if (!seedEmail || !userDoc) return userDoc;
+  if (normalizeEmail(userDoc.email) !== seedEmail) return userDoc;
+  if (userDoc.staffRole === 'admin') return userDoc;
+  userDoc.staffRole = 'admin';
+  await userDoc.save();
+  console.log(`[auth] promoted seed admin: ${userDoc.email}`);
+  return userDoc;
+}
+
+function validateRegisterInput({ email, username, password }) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !normalizedEmail.includes('@')) {
+    return { error: 'Valid email is required' };
+  }
+  const name = String(username || '').trim();
+  if (!USERNAME_RE.test(name)) {
+    return {
+      error: 'Username must be 2–24 characters (letters, numbers, underscore)',
+    };
+  }
+  if (!password || String(password).length < MIN_PASSWORD_LEN) {
+    return { error: `Password must be at least ${MIN_PASSWORD_LEN} characters` };
+  }
+  return { email: normalizedEmail, username: name, password: String(password) };
+}
+
+async function registerUser({ email, username, password }) {
+  requireDb();
+  const validated = validateRegisterInput({ email, username, password });
+  if (validated.error) return validated;
+
+  const passwordHash = await bcrypt.hash(validated.password, BCRYPT_ROUNDS);
+  try {
+    let user = await User.create({
+      email: validated.email,
+      username: validated.username,
+      passwordHash,
+      level: 1,
+      xp: 0,
+    });
+    user = await maybePromoteSeedAdmin(user);
+    const publicUser = toPublicUser(user);
+    const token = signToken(publicUser.id);
+    return { ok: true, user: publicUser, token };
+  } catch (err) {
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern || {})[0] || 'field';
+      return { error: `${field === 'email' ? 'Email' : 'Username'} already in use` };
+    }
+    throw err;
+  }
+}
+
+async function loginUser({ email, password }) {
+  requireDb();
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !password) {
+    return { error: 'Email and password are required' };
+  }
+
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) return { error: 'Invalid email or password' };
+  if (user.bannedAt) return { error: 'Account is banned' };
+
+  const match = await bcrypt.compare(String(password), user.passwordHash);
+  if (!match) return { error: 'Invalid email or password' };
+
+  await maybePromoteSeedAdmin(user);
+  await reconcileUserLevel(user);
+  const publicUser = toPublicUser(user);
+  const token = signToken(publicUser.id);
+  return { ok: true, user: publicUser, token };
+}
+
+async function findUserById(userId) {
+  const user = await findUserDocumentById(userId);
+  return user ? toPublicUser(user) : null;
+}
+
+async function updateProfile(userId, { avatarUrl, customSaying }) {
+  requireDb();
+  const user = await User.findById(userId);
+  if (!user) return { error: 'User not found' };
+
+  if (avatarUrl !== undefined) {
+    const url = String(avatarUrl || '').trim();
+    user.avatarUrl = url.length ? url.slice(0, 500) : null;
+  }
+  if (customSaying !== undefined) {
+    user.customSaying = String(customSaying || '').trim().slice(0, 200);
+  }
+
+  await user.save();
+  return { ok: true, user: toPublicUser(user) };
+}
+
+module.exports = {
+  toPublicUser,
+  toSocketUser,
+  registerUser,
+  loginUser,
+  findUserById,
+  findUserDocumentById,
+  assertUserNotBanned,
+  reconcileUserLevel,
+  updateProfile,
+  MIN_PASSWORD_LEN,
+};

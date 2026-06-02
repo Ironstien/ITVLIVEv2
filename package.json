@@ -1,0 +1,24 @@
+{
+  "name": "itvlive-v2",
+  "version": "0.1.0",
+  "description": "INTO THE VOID v2 — community music platform",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.9.5",
+    "socket.io": "^4.8.1"
+  }
+}

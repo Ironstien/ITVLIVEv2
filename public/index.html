@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INTO THE VOID — Main Stage</title>
+    <link rel="icon" href="/img/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/css/variables.css" />
+    <link rel="stylesheet" href="/css/layout-config.css?v=2" />
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/components.css?v=3" />
+  </head>
+  <body>
+    <header class="site-nav">
+      <div class="site-nav__progress" aria-hidden="true">
+        <div class="site-nav__progress-fill" id="nav-progress-fill"></div>
+      </div>
+      <div class="site-nav__inner">
+      <div class="site-brand" aria-label="INTO THE VOID">
+        <img src="/img/itv-logo.png" alt="" width="28" height="28" />
+        <span class="site-brand-name">ITV</span>
+      </div>
+      <ul class="nav-links">
+        <li>
+          <button type="button" class="nav-link-btn" data-open-modal="my-data">My Data</button>
+        </li>
+        <li>
+          <button type="button" class="nav-link-btn" data-open-modal="song-data">Song Data</button>
+        </li>
+        <li>
+          <button type="button" class="nav-link-btn" data-open-modal="about">About Us</button>
+        </li>
+        <li class="hidden" id="nav-mod-tools-wrap">
+          <button type="button" class="nav-link-btn" data-open-modal="mod-tools">Mod Tools</button>
+        </li>
+        <li class="hidden" id="nav-admin-panel-wrap">
+          <button type="button" class="nav-link-btn" data-open-modal="admin-panel">Admin Panel</button>
+        </li>
+      </ul>
+      <div class="nav-actions">
+        <button type="button" class="btn-ghost btn-sm" data-open-modal="login" id="nav-auth-link">
+          Log in
+        </button>
+        <div class="nav-user" id="nav-user">Connecting…</div>
+      </div>
+      </div>
+    </header>
+
+    <main class="stage">
+      <aside class="panel panel-playlist panel-playlist--guest panel-side" id="panel-playlist" data-panel="playlist">
+        <div class="panel-side__strip" aria-hidden="true">
+          <button type="button" class="panel-side__strip-btn" data-panel-expand="playlist" aria-label="Expand playlist">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+            </svg>
+          </button>
+          <span class="panel-side__strip-label">Playlist</span>
+        </div>
+        <div class="panel-side__main">
+          <div class="panel-header panel-header-with-action panel-side__header">
+            <span>Your Playlist</span>
+            <div class="panel-side__header-actions">
+              <button type="button" class="btn-ghost btn-sm" id="btn-playlist-rip" disabled title="Add now playing to your active playlist">
+                Rip current song
+              </button>
+              <button
+                type="button"
+                class="panel-side__collapse"
+                data-panel-collapse="playlist"
+                aria-label="Collapse playlist"
+                title="Collapse playlist"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        <div class="panel-body panel-playlist-body">
+          <div class="playlist-toolbar">
+            <select id="playlist-select" disabled aria-label="Select playlist">
+              <option value="">—</option>
+            </select>
+            <div class="playlist-toolbar__actions">
+              <button type="button" class="btn-ghost btn-sm" id="btn-playlist-new" disabled title="New playlist">
+                +
+              </button>
+              <button type="button" class="btn-ghost btn-sm" id="btn-playlist-active" disabled title="Set active">
+                ★
+              </button>
+              <button
+                type="button"
+                class="btn-ghost btn-sm playlist-toolbar__icon"
+                id="btn-playlist-rename"
+                disabled
+                title="Rename playlist"
+                aria-label="Rename playlist"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M5 18l3.25-8h1.5L13 18h-1.9l-.65-1.85H7.55L6.9 18H5zm2.85-3.4h2.3L9.05 11.2 7.85 14.6z"
+                  />
+                  <path d="M15 4h4v1.5h-1.25v13H19V20h-4v-1.5h1.25V5.5H15V4z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="btn-ghost btn-sm playlist-toolbar__icon"
+                id="btn-playlist-delete"
+                disabled
+                title="Delete playlist"
+                aria-label="Delete playlist"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <form class="playlist-form" id="playlist-add-form" aria-disabled="true">
+            <input
+              type="text"
+              id="playlist-url-input"
+              placeholder="Paste YouTube URL…"
+              autocomplete="off"
+              disabled
+            />
+            <button type="submit" class="btn-primary btn-sm" id="btn-playlist-add" disabled>Add</button>
+          </form>
+          <p id="playlist-status" class="playlist-status muted hidden" role="status"></p>
+          <div class="playlist-scroll">
+            <ul class="playlist-list" id="playlist-items">
+              <li class="muted">Playlists require an account.</li>
+            </ul>
+          </div>
+          <div class="playlist-io">
+            <input type="file" id="playlist-import-file" accept=".txt,text/plain" class="hidden" />
+            <button type="button" class="btn-ghost btn-sm" id="btn-playlist-import" disabled>Import</button>
+            <button type="button" class="btn-ghost btn-sm" id="btn-playlist-export" disabled>Export</button>
+          </div>
+        </div>
+        </div>
+      </aside>
+
+      <section class="stage-center">
+        <div class="panel alerts-banner" id="alerts-banner" aria-label="Stage alerts">
+          <div class="panel-body alerts-banner__body">
+            <p class="alerts-banner__text">Moving Alerts Banner</p>
+          </div>
+        </div>
+
+        <div class="player-zone">
+          <aside class="current-dj current-dj--avatar" id="current-dj-avatar" aria-label="Current DJ">
+            <p class="current-dj__empty muted">No DJ</p>
+          </aside>
+          <div class="player-stack" data-effect="1">
+            <div class="player-wrap">
+              <div id="yt-player"></div>
+              <button type="button" id="btn-player-unblock" class="player-unblock hidden">
+                Click to start playback
+              </button>
+              <div class="player-idle" id="player-idle">
+                <p class="player-idle__brand">INTO THE VOID</p>
+                <p>No track playing</p>
+                <p><small>Use dev endpoint to inject a test track</small></p>
+              </div>
+            </div>
+          </div>
+          <div class="player-stage__slot player-stage__slot--below" aria-hidden="true"></div>
+          <aside class="current-dj current-dj--stats" id="current-dj-stats" aria-label="Current DJ profile">
+            <p class="current-dj__empty muted">—</p>
+          </aside>
+        </div>
+
+        <div class="now-playing-block">
+          <div class="dj-banner-stack">
+            <div class="dj-banner">
+              <div class="dj-banner__info">
+                <strong>DJ:</strong> <span id="dj-name">—</span> &nbsp;|&nbsp;
+                <strong>Now playing:</strong> <span id="now-title">—</span>
+              </div>
+              <div class="volume-block">
+                <button type="button" class="volume-mute" aria-pressed="false" aria-label="Mute" disabled>
+                  <svg class="volume-mute__on" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03z" />
+                  </svg>
+                  <svg class="volume-mute__off" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"
+                    />
+                  </svg>
+                </button>
+                <input type="range" min="0" max="100" value="80" aria-label="Volume" disabled />
+              </div>
+            </div>
+          </div>
+
+          <div class="controls-row">
+            <button type="button" class="btn-primary btn-sm btn-queue-action" disabled>Join Queue</button>
+            <div class="vote-block" id="vote-block">
+              <div class="vote-block__row">
+                <label for="vote-slider">Vote (1–100)</label>
+                <div class="vote-slider-wrap" id="vote-slider-wrap">
+                  <span class="vote-slider-prompt" id="vote-slider-prompt">SLIDE TO VOTE</span>
+                  <input type="range" id="vote-slider" min="1" max="100" value="50" disabled />
+                </div>
+                <span class="vote-value" id="vote-value">50 <small>(log in to vote)</small></span>
+              </div>
+            </div>
+            <div class="air-sign air-sign--listening" aria-live="polite">
+              <span class="air-sign__plate">
+                <span class="air-sign__glow" aria-hidden="true"></span>
+                <span class="air-sign__text">Listening</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel panel-chat panel-side" id="panel-chat" data-panel="chat">
+        <div class="panel-side__strip" aria-hidden="true">
+          <button type="button" class="panel-side__strip-btn" data-panel-expand="chat" aria-label="Expand chat">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z" />
+            </svg>
+          </button>
+          <span class="panel-side__strip-label">Chat</span>
+        </div>
+        <div class="panel-side__main">
+          <div class="panel-side__header">
+            <div class="chat-tabs">
+              <button type="button" class="chat-tab active" data-tab="chat">Live Chat</button>
+              <button type="button" class="chat-tab" data-tab="online">Online</button>
+              <button type="button" class="chat-tab" data-tab="queue">DJ Queue</button>
+            </div>
+            <button
+              type="button"
+              class="panel-side__collapse"
+              data-panel-collapse="chat"
+              aria-label="Collapse chat"
+              title="Collapse chat"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z" />
+              </svg>
+            </button>
+          </div>
+        <div class="panel-body chat-pane active" data-pane="chat">
+          <div id="chat-messages" class="chat-messages">
+            <p class="muted">Connecting…</p>
+          </div>
+          <form id="chat-form" class="chat-form">
+            <input type="text" id="chat-input" maxlength="280" placeholder="Say something…" autocomplete="off" />
+            <button type="submit" class="btn-primary btn-sm">Send</button>
+          </form>
+        </div>
+        <div class="panel-body chat-pane" data-pane="online">
+          <ul id="online-list" class="online-list">
+            <li class="muted">—</li>
+          </ul>
+        </div>
+        <div class="panel-body chat-pane" data-pane="queue">
+          <ul class="queue-list">
+            <li class="muted">Queue empty</li>
+          </ul>
+        </div>
+        </div>
+      </aside>
+
+      <section class="panel vinyl-pit" id="vinyl-pit">
+        <div class="vinyl-pit__strip" aria-hidden="true">
+          <button type="button" class="vinyl-pit__strip-btn" data-vinyl-pit-expand aria-label="Expand The Vinyl Pit">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
+            </svg>
+          </button>
+          <span class="vinyl-pit__strip-label">The Vinyl Pit</span>
+        </div>
+        <div class="vinyl-pit__main">
+          <div class="panel-header panel-header-with-action vinyl-pit__header">
+            <span>The Vinyl Pit</span>
+            <button
+              type="button"
+              class="panel-side__collapse"
+              data-vinyl-pit-collapse
+              aria-label="Collapse The Vinyl Pit"
+              title="Collapse The Vinyl Pit"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+              </svg>
+            </button>
+          </div>
+          <div class="panel-body vinyl-pit-body">
+            <div class="vinyl-pit-row vinyl-pit-row--queue">
+              <span class="vinyl-pit-row__label">DJ Queue</span>
+              <div class="vinyl-pit-row__discs" id="vinyl-pit-queue"></div>
+            </div>
+            <div class="vinyl-pit-row vinyl-pit-row--listeners">
+              <span class="vinyl-pit-row__label">Listening</span>
+              <div class="vinyl-pit-row__discs" id="vinyl-pit-listeners"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal hidden" data-modal-id="login" role="dialog" aria-labelledby="modal-login-title" aria-hidden="true">
+      <div class="modal-card modal-card--auth">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-login-title">Account</h2>
+        <p class="modal-card__lead">Playlists and the DJ queue require an account. Guests can still chat and listen.</p>
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="active" data-auth-mode="login">Log in</button>
+          <button type="button" data-auth-mode="register">Register</button>
+        </div>
+        <form id="auth-form" autocomplete="on">
+          <div class="auth-field hidden" id="auth-username-wrap">
+            <label for="auth-username">Username</label>
+            <input
+              id="auth-username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              minlength="2"
+              maxlength="24"
+              pattern="[a-zA-Z0-9_]{2,24}"
+            />
+          </div>
+          <div class="auth-field">
+            <label for="auth-email">Email</label>
+            <input id="auth-email" name="email" type="email" required autocomplete="email" />
+          </div>
+          <div class="auth-field">
+            <label for="auth-password">Password</label>
+            <input
+              id="auth-password"
+              name="password"
+              type="password"
+              required
+              minlength="8"
+              autocomplete="current-password"
+            />
+          </div>
+          <p id="auth-error" class="form-error hidden" role="alert"></p>
+          <button type="submit" class="btn-primary auth-submit" id="auth-submit">Log in</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="my-data" role="dialog" aria-labelledby="modal-my-data-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide modal-card--song-data">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-my-data-title">My Data</h2>
+        <div class="modal-body" id="modal-my-data-body">
+          <p class="modal-card__lead muted">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="song-data" role="dialog" aria-labelledby="modal-song-data-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide modal-card--song-data">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-song-data-title">Song Data</h2>
+        <div class="modal-body" id="modal-song-data-body">
+          <p class="modal-card__lead muted">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="about" role="dialog" aria-labelledby="modal-about-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-about-title">About INTO THE VOID</h2>
+        <div class="modal-body">
+          <p class="modal-card__lead">
+            ITV is a community music platform where DJs rotate through shared playlists and listeners
+            vote, earn XP, and level up — all in one live room.
+          </p>
+          <ul>
+            <li>Guests can chat and listen without an account.</li>
+            <li>Registered users manage playlists and join the DJ queue.</li>
+            <li>One account, one active tab — the stage keeps playing while you browse panels here.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="mod-tools" role="dialog" aria-labelledby="modal-mod-tools-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-mod-tools-title">Mod Tools</h2>
+        <div class="modal-body" id="modal-mod-tools-body">
+          <p class="modal-card__lead muted">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="admin-panel" role="dialog" aria-labelledby="modal-admin-panel-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-admin-panel-title">Admin Panel</h2>
+        <div class="modal-body" id="modal-admin-panel-body">
+          <p class="modal-card__lead muted">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="playlist-new" role="dialog" aria-labelledby="modal-playlist-new-title" aria-hidden="true">
+      <div class="modal-card modal-card--auth">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-playlist-new-title">New playlist</h2>
+        <p class="modal-card__lead">Name your playlist. The first one you create is set as active automatically.</p>
+        <form id="playlist-new-form" autocomplete="off">
+          <div class="auth-field">
+            <label for="playlist-new-name">Playlist name</label>
+            <input
+              id="playlist-new-name"
+              name="name"
+              type="text"
+              maxlength="120"
+              required
+              autocomplete="off"
+              placeholder="My set"
+            />
+          </div>
+          <p id="playlist-new-error" class="form-error hidden" role="alert"></p>
+          <button type="submit" class="btn-primary auth-submit" id="playlist-new-submit">Create playlist</button>
+        </form>
+        <div class="modal-import-progress hidden" id="playlist-new-progress" aria-live="polite">
+          <p class="modal-import-progress__label">Importing tracks…</p>
+          <div class="modal-import-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="modal-import-progress__bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="playlist-import" role="dialog" aria-labelledby="modal-playlist-import-title" aria-hidden="true">
+      <div class="modal-card modal-card--auth">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-playlist-import-title">Import tracks</h2>
+        <p class="modal-card__lead">
+          Choose how to add tracks from your file. Video IDs and title + URL lines are both supported on import.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="modal-action-btn auth-submit" id="playlist-import-overwrite">
+            Overwrite all tracks in this playlist
+          </button>
+          <button type="button" class="modal-action-btn auth-submit" id="playlist-import-append">
+            Add to bottom of this playlist
+          </button>
+          <button type="button" class="modal-action-btn auth-submit" id="playlist-import-new">
+            Create new playlist
+          </button>
+        </div>
+        <div class="modal-import-progress hidden" id="playlist-import-progress" aria-live="polite">
+          <p class="modal-import-progress__label">Importing tracks…</p>
+          <div class="modal-import-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="modal-import-progress__bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="playlist-rename" role="dialog" aria-labelledby="modal-playlist-rename-title" aria-hidden="true">
+      <div class="modal-card modal-card--auth">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-playlist-rename-title">Rename playlist</h2>
+        <p class="modal-card__lead">Change the name of the selected playlist.</p>
+        <form id="playlist-rename-form" autocomplete="off">
+          <div class="auth-field">
+            <label for="playlist-rename-name">Playlist name</label>
+            <input
+              id="playlist-rename-name"
+              name="name"
+              type="text"
+              maxlength="120"
+              required
+              autocomplete="off"
+            />
+          </div>
+          <p id="playlist-rename-error" class="form-error hidden" role="alert"></p>
+          <button type="submit" class="btn-primary auth-submit" id="playlist-rename-submit">Save name</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="playlist-delete" role="dialog" aria-labelledby="modal-playlist-delete-title" aria-hidden="true">
+      <div class="modal-card modal-card--auth">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-playlist-delete-title">Delete playlist</h2>
+        <p class="modal-card__lead">
+          Delete <strong id="playlist-delete-name">this playlist</strong>? All tracks in it will be removed. This
+          cannot be undone.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="modal-action-btn auth-submit" id="playlist-delete-cancel">Cancel</button>
+          <button type="button" class="modal-action-btn auth-submit modal-action-btn--danger" id="playlist-delete-confirm">
+            Delete playlist
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/layout.js?v=4"></script>
+    <script src="/js/modal.js?v=10"></script>
+    <script src="/js/auth.js?v=11"></script>
+    <script src="/js/auth-ui.js?v=10"></script>
+    <script src="/js/playlist.js?v=18"></script>
+    <script src="/js/player.js?v=10"></script>
+    <script src="/js/nav-progress.js?v=1"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="/js/rank-colors.js?v=2"></script>
+    <script src="/js/room.js?v=16"></script>
+    <script src="/js/vote.js?v=5"></script>
+    <script src="/js/song-data.js?v=1"></script>
+    <script src="/js/my-data.js?v=2"></script>
+    <script src="/js/staff-audit-ui.js?v=2"></script>
+    <script src="/js/mod-tools.js?v=2"></script>
+    <script src="/js/admin-panel.js?v=3"></script>
+    <script src="/js/app.js?v=19"></script>
+  </body>
+</html>
