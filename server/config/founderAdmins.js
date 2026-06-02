@@ -26,8 +26,24 @@ function matchesFounderAdmin(userOrDoc) {
   );
 }
 
+const VALID_STAFF_ROLES = ['mod', 'admin'];
+
+function sanitizeStaffRole(userDoc) {
+  if (!userDoc) return userDoc;
+  const role = userDoc.staffRole;
+  if (role == null || role === '') {
+    userDoc.staffRole = null;
+    return userDoc;
+  }
+  if (!VALID_STAFF_ROLES.includes(role)) {
+    userDoc.staffRole = null;
+  }
+  return userDoc;
+}
+
 async function ensureFounderAdmin(userDoc) {
-  if (!userDoc || !matchesFounderAdmin(userDoc)) return userDoc;
+  if (!userDoc || !matchesFounderAdmin(userDoc)) return sanitizeStaffRole(userDoc);
+  sanitizeStaffRole(userDoc);
   if (userDoc.staffRole === 'admin') return userDoc;
   userDoc.staffRole = 'admin';
   await userDoc.save();
@@ -68,7 +84,9 @@ async function ensureFounderAdminsInDb() {
 
 module.exports = {
   FOUNDER_ADMINS,
+  VALID_STAFF_ROLES,
   matchesFounderAdmin,
+  sanitizeStaffRole,
   ensureFounderAdmin,
   ensureFounderAdminsInDb,
 };

@@ -356,11 +356,20 @@ async function updatePlatform(actor, updates) {
 async function migrateLegacyStaffRoles() {
   if (!isDbConnected()) return { ok: true, modifiedCount: 0 };
 
-  const result = await User.updateMany({ staffRole: 'resident' }, { $set: { staffRole: null } });
-  if (result.modifiedCount > 0) {
-    console.log(`[staff] cleared ${result.modifiedCount} legacy resident role(s)`);
+  let modifiedCount = 0;
+  const resident = await User.updateMany({ staffRole: 'resident' }, { $set: { staffRole: null } });
+  modifiedCount += resident.modifiedCount;
+
+  const invalid = await User.updateMany(
+    { staffRole: { $exists: true, $nin: [null, 'mod', 'admin'] } },
+    { $set: { staffRole: null } }
+  );
+  modifiedCount += invalid.modifiedCount;
+
+  if (modifiedCount > 0) {
+    console.log(`[staff] cleared ${modifiedCount} legacy or invalid staff role(s)`);
   }
-  return { ok: true, modifiedCount: result.modifiedCount };
+  return { ok: true, modifiedCount };
 }
 
 module.exports = {

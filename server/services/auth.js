@@ -2,8 +2,8 @@ const bcrypt = require('bcryptjs');
 const { User } = require('../models');
 const { isDbConnected } = require('../config/db');
 const { signToken } = require('../lib/jwt');
-const { getLevelForXp } = require('../config/levels');
-const { ensureFounderAdmin } = require('../config/founderAdmins');
+const { getLevelForXp, MAX_LEVEL } = require('../config/levels');
+const { ensureFounderAdmin, sanitizeStaffRole } = require('../config/founderAdmins');
 const { evaluateAndGrantBadges } = require('./badges');
 
 const BCRYPT_ROUNDS = 10;
@@ -57,12 +57,20 @@ function requireDb() {
 async function reconcileUserLevel(doc) {
   if (!doc) return doc;
   const xp = doc.xp ?? 0;
-  const level = getLevelForXp(xp);
-  if ((doc.level ?? 1) !== level) {
+  const level = Math.min(MAX_LEVEL, getLevelForXp(xp));
+  const current = doc.level ?? 1;
+  if (current !== level || current > MAX_LEVEL) {
     doc.level = level;
     await doc.save();
   }
   return doc;
+}
+
+async function prepareUserDocument(doc) {
+  if (!doc) return null;
+  sanitizeStaffRole(doc);
+  await ensureFounderAdmin(doc);
+  return reconcileUserLevel(doc);
 }
 
 async function findUserDocumentById(userId) {
@@ -70,8 +78,7 @@ async function findUserDocumentById(userId) {
   if (!userId) return null;
   const user = await User.findById(userId);
   if (!user) return null;
-  await ensureFounderAdmin(user);
-  return reconcileUserLevel(user);
+  return prepareUserDocument(user);
 }
 
 function assertUserNotBanned(userDoc) {
@@ -95,8 +102,10 @@ function getSeedAdminEmail() {
 
 /** Promote SEED_ADMIN_EMAIL to admin (bootstrap). Founder admins are always admin separately. */
 async function maybePromoteSeedAdmin(userDoc) {
+  if (!userDoc) return userDoc;
+  sanitizeStaffRole(userDoc);
   const seedEmail = getSeedAdminEmail();
-  if (seedEmail && userDoc && normalizeEmail(userDoc.email) === seedEmail) {
+  if (seedEmail && normalizeEmail(userDoc.email) === seedEmail) {
     if (userDoc.staffRole !== 'admin') {
       userDoc.staffRole = 'admin';
       await userDoc.save();
@@ -166,6 +175,7 @@ async function loginUser({ email, password }) {
   const match = await bcrypt.compare(String(password), user.passwordHash);
   if (!match) return { error: 'Invalid email or password' };
 
+  sanitizeStaffRole(user);
   await maybePromoteSeedAdmin(user);
   await reconcileUserLevel(user);
   await evaluateAndGrantBadges(user);

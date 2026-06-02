@@ -18,10 +18,20 @@ const ITVAuthUI = (() => {
   function setMode(next) {
     mode = next;
     const { usernameWrap, submitBtn, passwordInput, errEl } = getEls();
+    const usernameInput = document.getElementById('auth-username');
     document.querySelectorAll('.auth-tabs [data-auth-mode]').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.authMode === mode);
     });
     if (usernameWrap) usernameWrap.classList.toggle('hidden', mode === 'login');
+    if (usernameInput) {
+      usernameInput.disabled = mode === 'login';
+      if (mode === 'login') {
+        usernameInput.removeAttribute('required');
+        usernameInput.value = '';
+      } else {
+        usernameInput.disabled = false;
+      }
+    }
     if (submitBtn) submitBtn.textContent = mode === 'login' ? 'Log in' : 'Create account';
     if (passwordInput) {
       passwordInput.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
@@ -29,6 +39,14 @@ const ITVAuthUI = (() => {
     if (errEl) {
       errEl.classList.add('hidden');
       errEl.textContent = '';
+    }
+  }
+
+  function prepareLogin() {
+    setMode('login');
+    const email = document.getElementById('auth-email');
+    if (email) {
+      requestAnimationFrame(() => email.focus());
     }
   }
 
@@ -68,9 +86,9 @@ const ITVAuthUI = (() => {
           const username = document.getElementById('auth-username')?.value?.trim();
           data = await ITVAuth.register({ email, username, password });
         }
+        if (onSuccess) await onSuccess(data.user);
         ITVModal.close('login');
         resetForm();
-        if (onSuccess) await onSuccess(data.user);
       } catch (err) {
         if (errEl) {
           errEl.textContent = err.message || 'Something went wrong';
@@ -84,5 +102,5 @@ const ITVAuthUI = (() => {
     setMode('login');
   }
 
-  return { init, resetForm, setMode };
+  return { init, resetForm, setMode, prepareLogin };
 })();

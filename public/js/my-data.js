@@ -62,6 +62,9 @@ const ITVMyData = (() => {
     const btn = document.getElementById('my-data-login-btn');
     btn?.addEventListener('click', () => {
       ITVModal.close(MODAL_ID);
+      if (typeof ITVAuthUI !== 'undefined' && ITVAuthUI.prepareLogin) {
+        ITVAuthUI.prepareLogin();
+      }
       ITVModal.open('login');
     });
   }

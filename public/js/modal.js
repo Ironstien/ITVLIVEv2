@@ -10,15 +10,30 @@ const ITVModal = (() => {
     if (id) modals.set(id, el);
   }
 
+  function focusModal(id, el) {
+    if (id === 'login') {
+      if (typeof ITVAuthUI !== 'undefined' && ITVAuthUI.prepareLogin) {
+        ITVAuthUI.prepareLogin();
+        return;
+      }
+      const email = el.querySelector('#auth-email');
+      if (email && !email.disabled) {
+        email.focus();
+        return;
+      }
+    }
+    const focusable = el.querySelector(
+      'input:not([disabled]), textarea:not([disabled]), select:not([disabled])'
+    );
+    if (focusable) focusable.focus();
+  }
+
   function open(id) {
     const el = modals.get(id);
     if (!el) return false;
     el.classList.remove('hidden');
     el.setAttribute('aria-hidden', 'false');
-    const focusable = el.querySelector(
-      'input:not([disabled]), button:not(.modal-close), [href], textarea'
-    );
-    if (focusable) focusable.focus();
+    focusModal(id, el);
     return true;
   }
 

@@ -156,7 +156,13 @@
     } else {
       navAuthLink.textContent = 'Log in';
       navAuthLink.setAttribute('data-open-modal', 'login');
-      navAuthLink.onclick = null;
+      navAuthLink.onclick = (e) => {
+        e.preventDefault();
+        if (typeof ITVAuthUI !== 'undefined' && ITVAuthUI.prepareLogin) {
+          ITVAuthUI.prepareLogin();
+        }
+        ITVModal.open('login');
+      };
     }
   }
 
