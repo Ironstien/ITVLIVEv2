@@ -164,13 +164,18 @@ const ITVRoom = (() => {
       const av = m.avatarUrl
         ? `<img class="chat-avatar" src="${escapeHtml(m.avatarUrl)}" alt="" loading="lazy" />`
         : '';
-      const nameHtml =
+      const nameInner =
         typeof ITVRank !== 'undefined'
           ? ITVRank.formatChatName(m.displayName, {
               level: m.level ?? 1,
               staffRole: m.staffRole ?? null,
+              asButton: true,
             })
-          : `<strong>${escapeHtml(m.displayName)}</strong>`;
+          : escapeHtml(m.displayName);
+      const userIdAttr = m.userId ? ` data-user-id="${escapeHtml(m.userId)}"` : '';
+      const levelAttr = ` data-level="${escapeHtml(m.level ?? 1)}"`;
+      const displayAttr = ` data-display-name="${escapeHtml(m.displayName || '')}"`;
+      const nameHtml = `<button type="button" class="chat-name-btn"${userIdAttr}${levelAttr}${displayAttr}>${nameInner}</button>`;
       div.innerHTML = `${av}<span>${nameHtml} ${escapeHtml(m.text)}</span>`;
       chatEl.appendChild(div);
     });

@@ -2,6 +2,8 @@ const { User, Playlist, XpTransaction, Vote, PlaySession } = require('../models'
 const { isDbConnected } = require('../config/db');
 const { findUserDocumentById } = require('./auth');
 const { getRankNameForLevel, getRankColorForLevel, getStaffRoleColor, getStaffRoleLabel, xpToNextLevel, xpForLevel } = require('../config/levels');
+const { resolveBadgeDetails } = require('../config/badges');
+const { evaluateAndGrantBadges } = require('./badges');
 
 const XP_HISTORY_LIMIT = 50;
 const VOTE_HISTORY_LIMIT = 25;
@@ -55,7 +57,11 @@ async function getUserFullData(userId) {
     };
   });
 
+  await evaluateAndGrantBadges(user);
+  user = await findUserDocumentById(userId);
+
   const stats = user.stats || {};
+  const badgeIds = Array.isArray(user.badges) ? user.badges : [];
 
   return {
     ok: true,
@@ -78,7 +84,10 @@ async function getUserFullData(userId) {
       staffRole: user.staffRole ?? null,
       staffRoleLabel: getStaffRoleLabel(user.staffRole),
       staffRoleColor: getStaffRoleColor(user.staffRole),
-      badges: Array.isArray(user.badges) ? user.badges : [],
+    },
+    badges: {
+      ids: badgeIds,
+      details: resolveBadgeDetails(badgeIds),
     },
     profile: {
       avatarUrl: user.avatarUrl ?? null,

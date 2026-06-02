@@ -76,10 +76,10 @@ const ITVMyData = (() => {
     bodyEl.innerHTML = `<p class="modal-card__lead muted">${escapeHtml(message)}</p>`;
   }
 
-  function renderData(data) {
+  async function renderData(data) {
     if (!bodyEl) return;
 
-    const { account, progression, staff, profile, stats, playlists, xpHistory, voteHistory } = data;
+    const { account, progression, staff, profile, stats, playlists, xpHistory, voteHistory, badges } = data;
 
     const accountHtml = renderSection(
       'Account',
@@ -112,13 +112,22 @@ const ITVMyData = (() => {
       ].join('')
     );
 
-    const staffHtml = renderSection(
-      'Staff & badges',
-      [
-        renderRow('Staff role', staffRoleValue),
-        renderRow('Badges', formatValue(staff.badges)),
-      ].join('')
-    );
+    const staffHtml = renderSection('Staff', [renderRow('Staff role', staffRoleValue)].join(''));
+
+    const badgeGridHtml =
+      typeof ITVBadges !== 'undefined'
+        ? await ITVBadges.renderBadgeGrid(badges?.ids || [], {
+            showLocked: true,
+            emptyMessage: 'No badges earned yet — play, vote, and DJ to unlock.',
+          })
+        : formatValue(badges?.ids || []);
+
+    const badgesHtml = `
+      <section class="my-data-section">
+        <h3 class="my-data-section__title">Badges</h3>
+        ${badgeGridHtml}
+      </section>
+    `;
 
     const profileHtml = renderSection(
       'Profile',
@@ -209,6 +218,7 @@ const ITVMyData = (() => {
         ${accountHtml}
         ${progressionHtml}
         ${staffHtml}
+        ${badgesHtml}
         ${profileHtml}
         ${statsHtml}
         ${playlistsHtml}
@@ -230,7 +240,7 @@ const ITVMyData = (() => {
     renderLoading();
     try {
       const data = await ITVAuth.api('/api/auth/my-data');
-      renderData(data);
+      await renderData(data);
     } catch (err) {
       if (err.status === 401) {
         renderLoginPrompt();

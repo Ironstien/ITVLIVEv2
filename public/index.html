@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/css/variables.css" />
     <link rel="stylesheet" href="/css/layout-config.css?v=2" />
     <link rel="stylesheet" href="/css/layout.css" />
-    <link rel="stylesheet" href="/css/components.css?v=3" />
+    <link rel="stylesheet" href="/css/components.css?v=5" />
   </head>
   <body>
     <header class="site-nav">
@@ -29,10 +29,19 @@
           <button type="button" class="nav-link-btn" data-open-modal="song-data">Song Data</button>
         </li>
         <li>
+          <button type="button" class="nav-link-btn" data-open-modal="help">Help</button>
+        </li>
+        <li>
           <button type="button" class="nav-link-btn" data-open-modal="about">About Us</button>
+        </li>
+        <li class="hidden" id="nav-mod-help-wrap">
+          <button type="button" class="nav-link-btn" data-open-modal="mod-help">Mod Help</button>
         </li>
         <li class="hidden" id="nav-mod-tools-wrap">
           <button type="button" class="nav-link-btn" data-open-modal="mod-tools">Mod Tools</button>
+        </li>
+        <li class="hidden" id="nav-admin-help-wrap">
+          <button type="button" class="nav-link-btn" data-open-modal="admin-help">Admin Help</button>
         </li>
         <li class="hidden" id="nav-admin-panel-wrap">
           <button type="button" class="nav-link-btn" data-open-modal="admin-panel">Admin Panel</button>
@@ -351,6 +360,16 @@
       </div>
     </div>
 
+    <div class="modal hidden" data-modal-id="user-profile" role="dialog" aria-labelledby="modal-user-profile-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-user-profile-title">User profile</h2>
+        <div class="modal-body" id="modal-user-profile-body">
+          <p class="modal-card__lead muted">Loading…</p>
+        </div>
+      </div>
+    </div>
+
     <div class="modal hidden" data-modal-id="my-data" role="dialog" aria-labelledby="modal-my-data-title" aria-hidden="true">
       <div class="modal-card modal-card--wide modal-card--song-data">
         <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
@@ -385,6 +404,39 @@
             <li>Registered users manage playlists and join the DJ queue.</li>
             <li>One account, one active tab — the stage keeps playing while you browse panels here.</li>
           </ul>
+          <p class="help-about-cta">
+            <button type="button" class="btn-primary btn-sm" data-open-modal="help">Open Help &amp; FAQ</button>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="help" role="dialog" aria-labelledby="modal-help-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide modal-card--help">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-help-title">Help &amp; FAQ</h2>
+        <div class="modal-body" id="modal-help-body">
+          <p class="modal-card__lead muted">Loading…</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="mod-help" role="dialog" aria-labelledby="modal-mod-help-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide modal-card--help">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-mod-help-title">Mod Help</h2>
+        <div class="modal-body" id="modal-mod-help-body">
+          <p class="modal-card__lead muted">Open this guide from the nav when signed in as staff.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" data-modal-id="admin-help" role="dialog" aria-labelledby="modal-admin-help-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide modal-card--help">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-admin-help-title">Admin Help</h2>
+        <div class="modal-body" id="modal-admin-help-body">
+          <p class="modal-card__lead muted">Open this guide from the nav when signed in as an admin.</p>
         </div>
       </div>
     </div>
@@ -515,14 +567,18 @@
     <script src="/js/player.js?v=10"></script>
     <script src="/js/nav-progress.js?v=1"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="/js/rank-colors.js?v=2"></script>
-    <script src="/js/room.js?v=16"></script>
+    <script src="/js/rank-colors.js?v=3"></script>
+    <script src="/js/badges.js?v=1"></script>
+    <script src="/js/user-profile.js?v=1"></script>
+    <script src="/js/help.js?v=1"></script>
+    <script src="/js/staff-help.js?v=1"></script>
+    <script src="/js/room.js?v=17"></script>
     <script src="/js/vote.js?v=5"></script>
     <script src="/js/song-data.js?v=1"></script>
-    <script src="/js/my-data.js?v=2"></script>
+    <script src="/js/my-data.js?v=3"></script>
     <script src="/js/staff-audit-ui.js?v=2"></script>
     <script src="/js/mod-tools.js?v=2"></script>
     <script src="/js/admin-panel.js?v=3"></script>
-    <script src="/js/app.js?v=20"></script>
+    <script src="/js/app.js?v=21"></script>
   </body>
 </html>

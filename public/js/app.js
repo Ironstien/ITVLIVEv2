@@ -8,7 +8,9 @@
   const navUser = document.getElementById('nav-user');
   const navAuthLink = document.getElementById('nav-auth-link');
   const siteVersion = document.getElementById('site-version');
+  const navModHelpWrap = document.getElementById('nav-mod-help-wrap');
   const navModToolsWrap = document.getElementById('nav-mod-tools-wrap');
+  const navAdminHelpWrap = document.getElementById('nav-admin-help-wrap');
   const navAdminPanelWrap = document.getElementById('nav-admin-panel-wrap');
   const chatForm = document.getElementById('chat-form');
   const chatInput = document.getElementById('chat-input');
@@ -116,8 +118,14 @@
   }
 
   function updateStaffNav() {
+    if (navModHelpWrap) {
+      navModHelpWrap.classList.toggle('hidden', !isStaff(accountUser));
+    }
     if (navModToolsWrap) {
       navModToolsWrap.classList.toggle('hidden', !isStaff(accountUser));
+    }
+    if (navAdminHelpWrap) {
+      navAdminHelpWrap.classList.toggle('hidden', !isAdmin(accountUser));
     }
     if (navAdminPanelWrap) {
       navAdminPanelWrap.classList.toggle('hidden', !isAdmin(accountUser));
@@ -358,6 +366,18 @@
       setNavAccount(accountUser, 'connected');
       if (typeof ITVVote !== 'undefined') {
         ITVVote.setAccount(accountUser);
+      }
+      if (Array.isArray(progress.newBadges) && progress.newBadges.length) {
+        const existing = new Set(accountUser.badges || []);
+        for (const id of progress.newBadges) {
+          if (!existing.has(id)) existing.add(id);
+        }
+        accountUser.badges = [...existing];
+        if (progress.newBadges.length === 1) {
+          toast(`Badge earned: ${progress.newBadges[0].replace(/_/g, ' ')}`);
+        } else {
+          toast(`${progress.newBadges.length} new badges earned`);
+        }
       }
       if (progress.leveledUp) {
         toast(`Level up! You are now level ${progress.level}`);

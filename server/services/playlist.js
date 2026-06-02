@@ -1,5 +1,6 @@
 const { Playlist, PlaylistItem, User } = require('../models');
 const { parseYoutubeId, fetchYoutubeMeta } = require('./youtube');
+const { evaluateAndGrantBadgesById } = require('./badges');
 
 const EXPORT_URL = (youtubeId) => `https://www.youtube.com/watch?v=${youtubeId}`;
 
@@ -102,6 +103,8 @@ async function createPlaylist(userId, name) {
   if (isFirst) {
     await User.findByIdAndUpdate(userId, { activePlaylistId: playlist._id });
   }
+
+  await evaluateAndGrantBadgesById(userId);
 
   return serializePlaylist(playlist);
 }
@@ -277,6 +280,8 @@ async function addItem(userId, playlistId, url, titleOverride) {
     youtubeId,
     order,
   });
+
+  await evaluateAndGrantBadgesById(userId);
 
   return serializeItem(item);
 }

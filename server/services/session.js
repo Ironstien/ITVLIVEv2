@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { PlaySession, Vote, XpTransaction, User, Song } = require('../models');
 const { isDbConnected } = require('../config/db');
 const { getLevelForXp } = require('../config/levels');
+const { evaluateAndGrantBadges } = require('./badges');
 
 const LISTENER_XP = 1;
 const DJ_XP = 3;
@@ -75,6 +76,8 @@ async function grantXpToUser(userId, amount, reason) {
 
   await XpTransaction.create({ userId, amount, reason });
 
+  const newBadges = await evaluateAndGrantBadges(user);
+
   return {
     userId: String(user._id),
     xp: user.xp,
@@ -82,6 +85,7 @@ async function grantXpToUser(userId, amount, reason) {
     delta: amount,
     reason,
     leveledUp: user.level > beforeLevel,
+    newBadges,
   };
 }
 
@@ -181,10 +185,10 @@ async function grantListenerXp(listenerUserIds, djUserId) {
     if (seen.has(userId)) continue;
     seen.add(userId);
 
+    await User.findByIdAndUpdate(userId, { $inc: { 'stats.totalListens': 1 } });
     const progress = await grantXpToUser(userId, LISTENER_XP, 'listen');
     if (progress) {
       progressUpdates.push(progress);
-      await User.findByIdAndUpdate(userId, { $inc: { 'stats.totalListens': 1 } });
     }
   }
 

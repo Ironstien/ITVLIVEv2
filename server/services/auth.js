@@ -4,6 +4,7 @@ const { isDbConnected } = require('../config/db');
 const { signToken } = require('../lib/jwt');
 const { getLevelForXp } = require('../config/levels');
 const { ensureFounderAdmin } = require('../config/founderAdmins');
+const { evaluateAndGrantBadges } = require('./badges');
 
 const BCRYPT_ROUNDS = 10;
 const MIN_PASSWORD_LEN = 8;
@@ -137,6 +138,8 @@ async function registerUser({ email, username, password }) {
       xp: 0,
     });
     user = await maybePromoteSeedAdmin(user);
+    await evaluateAndGrantBadges(user);
+    user = await User.findById(user._id);
     const publicUser = toPublicUser(user);
     const token = signToken(publicUser.id);
     return { ok: true, user: publicUser, token };
@@ -165,6 +168,8 @@ async function loginUser({ email, password }) {
 
   await maybePromoteSeedAdmin(user);
   await reconcileUserLevel(user);
+  await evaluateAndGrantBadges(user);
+  user = await User.findById(user._id);
   const publicUser = toPublicUser(user);
   const token = signToken(publicUser.id);
   return { ok: true, user: publicUser, token };

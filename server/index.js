@@ -39,10 +39,16 @@ const authRoutes = require('./routes/auth');
 const playlistRoutes = require('./routes/playlists');
 const songRoutes = require('./routes/songs');
 const adminRoutes = require('./routes/admin');
+const helpRoutes = require('./routes/help');
+const usersRoutes = require('./routes/users');
+const badgesRoutes = require('./routes/badges');
 app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/badges', badgesRoutes);
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/songs', songRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/help', helpRoutes);
 
 app.get('/health', (_req, res) => {
   const status = getHealthStatus();

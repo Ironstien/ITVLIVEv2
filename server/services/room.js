@@ -21,6 +21,8 @@ const {
 const { createPlaySessionRecord, finalizePlaySession } = require('./session');
 const platform = require('./platform');
 const { isModOrAbove } = require('../config/permissions');
+const { evaluateAndGrantBadgesById } = require('./badges');
+const { User } = require('../models');
 
 const MAX_CHAT = 80;
 const MAX_MESSAGE_LEN = 280;
@@ -686,6 +688,7 @@ class Room {
     this._chatId += 1;
     const msg = {
       id: this._chatId,
+      userId: user.userId ? String(user.userId) : null,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl || null,
       level: user.level ?? 1,
@@ -739,6 +742,12 @@ class Room {
     user.inQueue = true;
     const queueWasEmpty = this.djQueue.length === 0;
     this.djQueue.push(entry);
+
+    const newBadges = await evaluateAndGrantBadgesById(user.userId, { hasQueued: true });
+    if (newBadges.length) {
+      const fresh = await User.findById(user.userId).lean();
+      if (fresh?.badges) user.badges = fresh.badges;
+    }
 
     if (queueWasEmpty) {
       const started = await this._startQueueHead({ interruptCurrent: true });

@@ -116,13 +116,20 @@ const ITVRank = (() => {
     return `${levelPrefix}${n} · ${formatRankForLevel(n)}`;
   }
 
-  function formatChatName(displayName, { level = 1, staffRole = null } = {}) {
+  function formatChatName(displayName, { level = 1, staffRole = null, asButton = false } = {}) {
     const name = escapeHtml(displayName || 'Guest');
+    const innerClass = asButton ? 'chat-name' : 'chat-name';
     if (staffRole === 'mod' || staffRole === 'admin') {
       const key = rankClassKey(staffRole);
+      if (asButton) {
+        return `<span class="${innerClass} rank-name rank-name--${escapeHtml(key)}">${name}</span>`;
+      }
       return `<strong class="chat-name rank-name rank-name--${escapeHtml(key)}">${name}</strong>`;
     }
     const key = rankClassKey(getRankNameForLevel(level));
+    if (asButton) {
+      return `<span class="${innerClass} rank-name rank-name--${escapeHtml(key)}">${name}</span>`;
+    }
     return `<strong class="chat-name rank-name rank-name--${escapeHtml(key)}">${name}</strong>`;
   }
 
