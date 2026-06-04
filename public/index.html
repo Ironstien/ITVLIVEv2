@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/css/variables.css" />
     <link rel="stylesheet" href="/css/layout-config.css?v=3" />
     <link rel="stylesheet" href="/css/layout.css?v=3" />
-    <link rel="stylesheet" href="/css/components.css?v=6" />
+    <link rel="stylesheet" href="/css/components.css?v=7" />
   </head>
   <body>
     <header class="site-nav">
@@ -375,6 +375,24 @@
       </div>
     </div>
 
+    <div
+      class="modal hidden"
+      data-modal-id="badge-earned"
+      role="dialog"
+      aria-labelledby="modal-badge-earned-title"
+      aria-hidden="true"
+    >
+      <div class="modal-card modal-card--badge-earned">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <p class="badge-earned-modal__eyebrow">Achievement</p>
+        <h2 id="modal-badge-earned-title" class="badge-earned-modal__title">YOU HAVE EARNED THE BADGE</h2>
+        <img class="badge-earned-modal__img" id="badge-earned-img" src="" alt="" width="160" height="160" />
+        <p class="badge-earned-modal__name" id="badge-earned-name"></p>
+        <p class="badge-earned-modal__how muted" id="badge-earned-how"></p>
+        <button type="button" class="btn-primary badge-earned-modal__btn" data-modal-close>Continue</button>
+      </div>
+    </div>
+
     <div class="modal hidden" data-modal-id="user-profile" role="dialog" aria-labelledby="modal-user-profile-title" aria-hidden="true">
       <div class="modal-card modal-card--wide">
         <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
@@ -584,17 +602,17 @@
     <script src="/js/nav-progress.js?v=1"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="/js/rank-colors.js?v=3"></script>
-    <script src="/js/badges.js?v=2"></script>
+    <script src="/js/badges.js?v=4"></script>
     <script src="/js/user-profile.js?v=2"></script>
     <script src="/js/help.js?v=1"></script>
     <script src="/js/staff-help.js?v=1"></script>
-    <script src="/js/room.js?v=17"></script>
+    <script src="/js/room.js?v=18"></script>
     <script src="/js/vote.js?v=5"></script>
     <script src="/js/song-data.js?v=1"></script>
     <script src="/js/my-data.js?v=5"></script>
     <script src="/js/staff-audit-ui.js?v=2"></script>
     <script src="/js/mod-tools.js?v=2"></script>
-    <script src="/js/admin-panel.js?v=3"></script>
-    <script src="/js/app.js?v=23"></script>
+    <script src="/js/admin-panel.js?v=4"></script>
+    <script src="/js/app.js?v=25"></script>
   </body>
 </html>

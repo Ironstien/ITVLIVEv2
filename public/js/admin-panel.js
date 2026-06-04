@@ -84,6 +84,19 @@ const ITVAdminPanel = (() => {
     });
   }
 
+  async function resetUserBadges(userId) {
+    return ITVAuth.api(`/api/admin/users/${encodeURIComponent(userId)}/reset-badges`, {
+      method: 'POST',
+    });
+  }
+
+  async function resetAllUsersBadges() {
+    return ITVAuth.api('/api/admin/badges/reset-all', {
+      method: 'POST',
+      body: JSON.stringify({ confirm: 'RESET_ALL_BADGES' }),
+    });
+  }
+
   async function setAccountBan(userId, banned, reason) {
     return ITVAuth.api(`/api/admin/users/${encodeURIComponent(userId)}/ban`, {
       method: 'PATCH',
@@ -237,6 +250,7 @@ const ITVAdminPanel = (() => {
               <button type="button" class="modal-action-btn auth-submit admin-role-row__save">Save role</button>
             </div>
             <div class="admin-role-row__controls admin-role-row__controls--danger">
+              <button type="button" class="modal-action-btn auth-submit admin-role-row__reset-badges">Reset badges</button>
               <button type="button" class="modal-action-btn auth-submit admin-role-row__reset-stats">Reset stats</button>
               ${
                 u.isBanned
@@ -292,6 +306,37 @@ const ITVAdminPanel = (() => {
               toast(`Updated ${result.user?.username || 'user'} → ${result.user?.staffRole || 'none'}`);
               if (accountUser?.id === userId && typeof onAccountRefresh === 'function') {
                 await onAccountRefresh();
+              }
+              await refreshAuditLog();
+              runSearch();
+            } catch (err) {
+              toast(err.message, true);
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
+
+        resultsEl.querySelectorAll('.admin-role-row__reset-badges').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('.admin-role-row');
+            const userId = row?.dataset.userId;
+            if (!userId) return;
+            if (
+              !window.confirm(
+                'Clear all earned badges and badge progress for this user? XP and level are kept. They can earn badges again from scratch.'
+              )
+            ) {
+              return;
+            }
+            btn.disabled = true;
+            try {
+              const result = await resetUserBadges(userId);
+              toast(`Reset badges for ${result.user?.username || 'user'}`);
+              if (accountUser?.id === userId) {
+                accountUser.badges = [];
+                if (typeof ITVBadges !== 'undefined') ITVBadges.clearCelebrationCache?.();
+                if (typeof onAccountRefresh === 'function') await onAccountRefresh();
               }
               await refreshAuditLog();
               runSearch();
@@ -488,6 +533,21 @@ const ITVAdminPanel = (() => {
         }
       </section>
 
+      <section class="admin-tools__section admin-tools__section--danger">
+        <h3 class="admin-tools__heading">Badge testing</h3>
+        <p class="admin-tools__hint muted">
+          Clears every account&apos;s earned badges and badge progress counters (listens, votes, streaks, etc.). XP and
+          level are not changed. Use per-user <strong>Reset badges</strong> in search when you only need one account.
+        </p>
+        <button
+          type="button"
+          class="modal-action-btn auth-submit modal-action-btn--danger"
+          id="panel-reset-all-badges"
+        >
+          Reset all users&apos; badges
+        </button>
+      </section>
+
       <section class="admin-tools__section">
         <h3 class="admin-tools__heading">Recent admin actions</h3>
         <div id="panel-audit-log" class="admin-audit-log"></div>
@@ -499,6 +559,36 @@ const ITVAdminPanel = (() => {
     auditContainer = bodyEl.querySelector('#panel-audit-log');
     bindPanelEvents();
     bindPlatformEvents();
+    bodyEl.querySelector('#panel-reset-all-badges')?.addEventListener('click', async () => {
+      const btn = bodyEl.querySelector('#panel-reset-all-badges');
+      if (
+        !window.confirm(
+          "Reset badge data for ALL users? This clears every earned badge and progress counter. Type OK in the next prompt if you're sure."
+        )
+      ) {
+        return;
+      }
+      const typed = window.prompt('Type RESET_ALL_BADGES to confirm:');
+      if (typed !== 'RESET_ALL_BADGES') {
+        toast('Reset cancelled — confirmation did not match', true);
+        return;
+      }
+      if (btn) btn.disabled = true;
+      try {
+        const result = await resetAllUsersBadges();
+        toast(`Reset badge data for ${result.usersModified ?? 0} user(s)`);
+        if (accountUser) {
+          accountUser.badges = [];
+          if (typeof ITVBadges !== 'undefined') ITVBadges.clearCelebrationCache?.();
+          if (typeof onAccountRefresh === 'function') await onAccountRefresh();
+        }
+        await refreshAuditLog();
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
     refreshAuditLog();
   }
 

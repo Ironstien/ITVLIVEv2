@@ -5,6 +5,7 @@ const { isDbConnected } = require('../config/db');
 const { findUserDocumentById } = require('./auth');
 const { matchesFounderAdmin } = require('../config/founderAdmins');
 const { logStaffAction } = require('./staffAudit');
+const { getDefaultBadgeProgressStats } = require('./badges');
 const platform = require('./platform');
 const { parseYoutubeId } = require('./youtube');
 
@@ -192,6 +193,63 @@ async function assignStaffRole(actor, targetUserId, staffRoleInput) {
   };
 }
 
+async function resetUserBadgeData(actor, targetUserId) {
+  if (!isDbConnected()) return { error: 'Database not available' };
+
+  const target = await findUserDocumentById(targetUserId);
+  if (!target) return { error: 'User not found' };
+
+  const previous = {
+    badgeCount: Array.isArray(target.badges) ? target.badges.length : 0,
+    badgeIds: [...(target.badges || [])],
+    stats: { ...(target.stats || {}) },
+  };
+
+  target.badges = [];
+  target.stats = getDefaultBadgeProgressStats();
+  await target.save();
+
+  await logStaffAction({
+    actorUserId: actor.id,
+    actorUsername: actor.username,
+    action: 'resetUserBadges',
+    targetUserId: target._id,
+    targetUsername: target.username,
+    details: { previousBadgeCount: previous.badgeCount },
+  });
+
+  return {
+    ok: true,
+    user: {
+      id: String(target._id),
+      username: target.username,
+      badges: [],
+    },
+    previous,
+  };
+}
+
+async function resetAllUsersBadgeData(actor) {
+  if (!isDbConnected()) return { error: 'Database not available' };
+
+  const defaultStats = getDefaultBadgeProgressStats();
+  const result = await User.updateMany({}, { $set: { badges: [], stats: defaultStats } });
+
+  await logStaffAction({
+    actorUserId: actor.id,
+    actorUsername: actor.username,
+    action: 'resetAllUserBadges',
+    targetUserId: null,
+    targetUsername: null,
+    details: { usersModified: result.modifiedCount ?? 0 },
+  });
+
+  return {
+    ok: true,
+    usersModified: result.modifiedCount ?? 0,
+  };
+}
+
 async function resetUserStats(actor, targetUserId) {
   if (!isDbConnected()) return { error: 'Database not available' };
 
@@ -375,6 +433,8 @@ async function migrateLegacyStaffRoles() {
 module.exports = {
   assignStaffRole,
   setUserXp,
+  resetUserBadgeData,
+  resetAllUsersBadgeData,
   resetUserStats,
   setAccountBan,
   blockVideo,

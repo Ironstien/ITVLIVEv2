@@ -1,4 +1,7 @@
 const { Room } = require('../services/room');
+const { setBadgeNotifyHandler } = require('../services/badges');
+const { resolveBadgeDetails } = require('../config/badges');
+const { User } = require('../models');
 const { can } = require('../config/permissions');
 const { verifyToken, isJwtConfigured } = require('../lib/jwt');
 const { isDbConnected } = require('../config/db');
@@ -76,9 +79,46 @@ async function logModAction(socket, action, result, extraDetails = null) {
 
 function emitUserProgress(io, progress) {
   if (!io || !progress?.userId) return;
-  for (const sid of sessionRegistry.getSocketsForUser(progress.userId)) {
-    io.to(sid).emit('user:progress', progress);
+  const payload = { ...progress };
+  if (Array.isArray(progress.newBadges) && progress.newBadges.length && !progress.badgeUnlocks) {
+    payload.badgeUnlocks = resolveBadgeDetails(progress.newBadges);
   }
+  for (const sid of sessionRegistry.getSocketsForUser(progress.userId)) {
+    io.to(sid).emit('user:progress', payload);
+  }
+}
+
+async function resolveDisplayNameForUserId(userId) {
+  for (const u of room.users.values()) {
+    if (u.userId && String(u.userId) === String(userId)) {
+      return u.displayName || null;
+    }
+  }
+  if (!isDbConnected()) return null;
+  try {
+    const doc = await User.findById(userId).select('username').lean();
+    return doc?.username || null;
+  } catch {
+    return null;
+  }
+}
+
+function announceBadgeUnlocks(io, { userId, newBadgeIds }) {
+  if (!io || !userId || !newBadgeIds?.length) return;
+
+  resolveDisplayNameForUserId(userId).then((displayName) => {
+    const name = displayName || 'Someone';
+    const badgeUnlocks = resolveBadgeDetails(newBadgeIds);
+    for (const b of badgeUnlocks) {
+      room.addBadgeEarnedChat(name, b.name);
+    }
+    broadcastRoomState(io, 'badge-earned');
+    emitUserProgress(io, {
+      userId: String(userId),
+      newBadges: newBadgeIds,
+      badgeUnlocks,
+    });
+  });
 }
 
 function forceDisconnectUser(io, userId, message) {
@@ -86,6 +126,8 @@ function forceDisconnectUser(io, userId, message) {
 }
 
 function registerSockets(io) {
+  setBadgeNotifyHandler((payload) => announceBadgeUnlocks(io, payload));
+
   io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token || !String(token).trim()) {
@@ -104,10 +146,7 @@ function registerSockets(io) {
     broadcastRoomState(io, 'track-end');
     if (finalizeResult?.progressUpdates?.length) {
       for (const progress of finalizeResult.progressUpdates) {
-        const sockets = sessionRegistry.getSocketsForUser(progress.userId);
-        for (const sid of sockets) {
-          io.to(sid).emit('user:progress', progress);
-        }
+        emitUserProgress(io, progress);
       }
     }
   });

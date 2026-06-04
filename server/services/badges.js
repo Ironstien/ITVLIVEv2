@@ -3,6 +3,47 @@ const { User, Playlist, PlaylistItem } = require('../models');
 const { isDbConnected } = require('../config/db');
 const { getEarnedBadgeIds } = require('../config/badges');
 
+/** @type {((payload: { userId: string, newBadgeIds: string[] }) => void)|null} */
+let badgeNotifyHandler = null;
+
+function setBadgeNotifyHandler(fn) {
+  badgeNotifyHandler = typeof fn === 'function' ? fn : null;
+}
+
+/** Default user.stats used when clearing badge progress (keeps xp/level unchanged). */
+function getDefaultBadgeProgressStats() {
+  return {
+    totalPlays: 0,
+    totalListens: 0,
+    totalVotesGiven: 0,
+    totalVotesReceived: 0,
+    avgScoreReceived: 0,
+    chatMessages: 0,
+    profilesViewed: 0,
+    highVotesGiven: 0,
+    lowVotesGiven: 0,
+    nightListens: 0,
+    listenerDayKey: null,
+    listenerDayCount: 0,
+    listenerStreakDays: 0,
+    djDayKey: null,
+    djDayCount: 0,
+    djStreakDays: 0,
+    voterStreakSessions: 0,
+    perfectMatchCount: 0,
+    firstVoterCount: 0,
+    b2bDjCount: 0,
+    hasHighScoreSet: false,
+    hasPerfectRoom: false,
+    hasCrowdPleaser: false,
+    hasWarmUpAct: false,
+    hasPeakTimeDj: false,
+    hasCrateDigger: false,
+    mentionedAxolotl: false,
+    mentionedCoffee: false,
+  };
+}
+
 function isValidObjectId(id) {
   if (!id) return false;
   const str = String(id);
@@ -91,6 +132,14 @@ async function evaluateAndGrantBadges(user, extraCtx = {}) {
     }
   }
 
+  if (badgeNotifyHandler) {
+    try {
+      badgeNotifyHandler({ userId: String(userId), newBadgeIds: toAdd });
+    } catch (err) {
+      console.warn('[badges] notify handler failed:', err.message);
+    }
+  }
+
   return toAdd;
 }
 
@@ -111,4 +160,6 @@ module.exports = {
   evaluateAndGrantBadges,
   evaluateAndGrantBadgesById,
   setManualBadge,
+  setBadgeNotifyHandler,
+  getDefaultBadgeProgressStats,
 };

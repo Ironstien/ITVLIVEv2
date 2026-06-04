@@ -103,7 +103,7 @@ async function recordDjPlayBadgeStats(
   user.markModified('stats');
   await user.save();
 
-  await evaluateAndGrantBadgesById(djUserId, {
+  return evaluateAndGrantBadgesById(djUserId, {
     sessionAggregates: aggregates,
     listenerCountAtStart,
   });

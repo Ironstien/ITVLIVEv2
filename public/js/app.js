@@ -370,6 +370,10 @@
 
     socket.on('user:progress', (progress) => {
       if (!progress || !accountUser || progress.userId !== accountUser.id) return;
+      if (progress.badgesReset) {
+        accountUser.badges = [];
+        if (typeof ITVBadges !== 'undefined') ITVBadges.clearCelebrationCache?.();
+      }
       accountUser.xp = progress.xp ?? accountUser.xp;
       accountUser.level = progress.level ?? accountUser.level;
       setNavAccount(accountUser, 'connected');
@@ -382,21 +386,9 @@
           if (!existing.has(id)) existing.add(id);
         }
         accountUser.badges = [...existing];
-        const formatBadgeToast = (id) => {
-          if (typeof ITVBadges !== 'undefined') {
-            const cat = ITVBadges.getDisplayName?.(id);
-            if (cat) return cat;
-          }
-          return String(id).replace(/_/g, ' ');
-        };
-        if (typeof ITVBadges !== 'undefined' && !ITVBadges._nameMapLoaded) {
-          ITVBadges.loadNameMap?.();
-        }
-        if (progress.newBadges.length === 1) {
-          toast(`Badge earned: ${formatBadgeToast(progress.newBadges[0])}`);
-        } else {
-          const names = progress.newBadges.map(formatBadgeToast).join(', ');
-          toast(`Badges earned: ${names}`);
+        if (typeof ITVBadges !== 'undefined') {
+          if (!ITVBadges._nameMapLoaded) ITVBadges.loadNameMap?.();
+          ITVBadges.celebrateUnlocks?.(progress.newBadges, progress.badgeUnlocks);
         }
       }
       if (progress.leveledUp) {

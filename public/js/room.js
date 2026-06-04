@@ -159,6 +159,13 @@ const ITVRoom = (() => {
     }
     chat.forEach((m) => {
       const div = document.createElement('div');
+      if (m.kind === 'badge-earned') {
+        div.className = 'chat-msg chat-msg--badge-earned';
+        if (m.id != null) div.dataset.messageId = String(m.id);
+        div.innerHTML = `<span class="chat-badge-earned">${escapeHtml(m.text || '')}</span>`;
+        chatEl.appendChild(div);
+        return;
+      }
       div.className = 'chat-msg';
       if (m.id != null) div.dataset.messageId = String(m.id);
       const av = m.avatarUrl

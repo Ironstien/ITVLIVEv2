@@ -264,14 +264,20 @@ async function finalizePlaySession({
 
   if (isValidObjectId(djUserId)) {
     await updateDjStats(djUserId, aggregates);
-    await recordDjPlayBadgeStats(djUserId, {
+    const djPlayBadges = await recordDjPlayBadgeStats(djUserId, {
       aggregates,
       listenerCountAtStart,
       previousDjUserId,
       endedAt: endMs,
     });
     const djProgress = await grantXpToUser(djUserId, DJ_XP, 'dj_play');
-    if (djProgress) progressUpdates.push(djProgress);
+    if (djProgress) {
+      if (djPlayBadges?.length) {
+        const merged = new Set([...(djProgress.newBadges || []), ...djPlayBadges]);
+        djProgress.newBadges = [...merged];
+      }
+      progressUpdates.push(djProgress);
+    }
   }
 
   const listenerProgress = await grantListenerXp(listenerUserIds, djUserId, endMs);

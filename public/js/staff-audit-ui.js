@@ -25,6 +25,8 @@ const ITVStaffAuditUI = (() => {
       assignStaffRole: 'Assign role',
       setUserXp: 'Set XP',
       resetUserStats: 'Reset stats',
+      resetUserBadges: 'Reset badges',
+      resetAllUserBadges: 'Reset all badges',
       forceDisconnect: 'Force disconnect',
       blockVideo: 'Block video',
       unblockVideo: 'Unblock video',
@@ -70,6 +72,12 @@ const ITVStaffAuditUI = (() => {
     }
     if (entry.action === 'resetUserStats') {
       return `${d.previousXp ?? 0} XP → 0`;
+    }
+    if (entry.action === 'resetUserBadges' && d.previousBadgeCount != null) {
+      return `${d.previousBadgeCount} badge(s) cleared`;
+    }
+    if (entry.action === 'resetAllUserBadges' && d.usersModified != null) {
+      return `${d.usersModified} user(s)`;
     }
     if (entry.action === 'blockVideo' && d.youtubeId) {
       return d.youtubeId;

@@ -6,6 +6,8 @@ const {
   assignStaffRole,
   setUserXp,
   resetUserStats,
+  resetUserBadgeData,
+  resetAllUsersBadgeData,
   setAccountBan,
   blockVideo,
   unblockVideo,
@@ -13,7 +15,7 @@ const {
   searchUsersForStaff,
 } = require('../services/staff');
 const platform = require('../services/platform');
-const { room, emitUserProgress, forceDisconnectUser } = require('../sockets');
+const { room, emitUserProgress, forceDisconnectUser, sessionRegistry } = require('../sockets');
 const { logStaffAction } = require('../services/staffAudit');
 const { setManualBadge } = require('../services/badges');
 const { MANUAL_BADGE_IDS, getBadgeDefinition } = require('../config/badges');
@@ -228,6 +230,74 @@ router.patch('/users/:userId/staff-role', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('[admin] assign staff role failed:', err.message);
     res.status(500).json({ error: 'Failed to assign staff role' });
+  }
+});
+
+router.post('/users/:userId/reset-badges', requireAdmin, async (req, res) => {
+  if (!can(req.user, 'resetUserBadges')) {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
+  }
+  try {
+    const result = await resetUserBadgeData(req.user, req.params.userId);
+    if (result.error) {
+      res.status(result.error === 'User not found' ? 404 : 400).json({ error: result.error });
+      return;
+    }
+
+    room.syncBadgesForUser(result.user.id, []);
+
+    const io = req.app.get('io');
+    if (io) {
+      emitUserProgress(io, {
+        userId: result.user.id,
+        badgesReset: true,
+        badges: [],
+      });
+      io.emit('room:state', room.getRoomState());
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error('[admin] reset user badges failed:', err.message);
+    res.status(500).json({ error: 'Failed to reset user badges' });
+  }
+});
+
+router.post('/badges/reset-all', requireAdmin, async (req, res) => {
+  if (!can(req.user, 'resetAllUserBadges')) {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
+  }
+  const confirm = String(req.body?.confirm || '').trim();
+  if (confirm !== 'RESET_ALL_BADGES') {
+    res.status(400).json({
+      error: 'Confirmation required',
+      hint: 'Send { "confirm": "RESET_ALL_BADGES" } in the request body',
+    });
+    return;
+  }
+  try {
+    const result = await resetAllUsersBadgeData(req.user);
+    if (result.error) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    room.clearAllOnlineBadges();
+
+    const io = req.app.get('io');
+    if (io) {
+      for (const userId of sessionRegistry.getConnectedUserIds()) {
+        emitUserProgress(io, { userId, badgesReset: true, badges: [] });
+      }
+      io.emit('room:state', room.getRoomState());
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error('[admin] reset all badges failed:', err.message);
+    res.status(500).json({ error: 'Failed to reset all badge data' });
   }
 });
 

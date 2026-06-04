@@ -35,6 +35,10 @@ class SessionRegistry {
     return sid ? [sid] : [];
   }
 
+  getConnectedUserIds() {
+    return [...this.byUserId.keys()];
+  }
+
   forceDisconnect(io, userId, message = 'Disconnected by staff.') {
     const id = String(userId);
     const sid = this.byUserId.get(id);

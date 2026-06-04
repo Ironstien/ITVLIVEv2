@@ -120,6 +120,24 @@ const ITVBadges = (() => {
    */
   let previewEl = null;
   let previewAnchor = null;
+  const unlockQueue = [];
+  let unlockShowing = false;
+  const celebratedBadgeIds = new Set();
+  let badgeEarnedModalObserver = null;
+
+  function ensureBadgeEarnedModalObserver() {
+    if (badgeEarnedModalObserver) return;
+    const modal = document.querySelector('.modal[data-modal-id="badge-earned"]');
+    if (!modal) return;
+    badgeEarnedModalObserver = new MutationObserver(() => {
+      if (!modal.classList.contains('hidden') || !unlockShowing) return;
+      unlockShowing = false;
+      if (unlockQueue.length) {
+        requestAnimationFrame(() => showNextUnlockModal());
+      }
+    });
+    badgeEarnedModalObserver.observe(modal, { attributes: true, attributeFilter: ['class'] });
+  }
 
   function ensurePreviewEl() {
     if (previewEl) return previewEl;
@@ -233,6 +251,77 @@ const ITVBadges = (() => {
     }
   }
 
+  function resolveUnlockDetail(id, badgeUnlocks) {
+    const fromPayload = Array.isArray(badgeUnlocks)
+      ? badgeUnlocks.find((b) => b.id === id)
+      : null;
+    if (fromPayload) {
+      return {
+        id: fromPayload.id,
+        name: fromPayload.name || id,
+        image: fromPayload.image || `/img/badges/${id}.png`,
+        description: fromPayload.description || '',
+      };
+    }
+    const fromCat = catalog?.find((b) => b.id === id);
+    return {
+      id,
+      name: fromCat?.name || getDisplayName(id) || String(id).replace(/_/g, ' '),
+      image: fromCat?.image || `/img/badges/${id}.png`,
+      description: fromCat?.description || '',
+    };
+  }
+
+  function fillUnlockModal(detail) {
+    const img = document.getElementById('badge-earned-img');
+    const nameEl = document.getElementById('badge-earned-name');
+    const howEl = document.getElementById('badge-earned-how');
+    if (img) {
+      img.src = detail.image || '';
+      img.alt = detail.name || 'Badge';
+    }
+    if (nameEl) nameEl.textContent = detail.name || '';
+    if (howEl) howEl.textContent = detail.description || 'Achievement unlocked';
+  }
+
+  function showNextUnlockModal() {
+    if (unlockShowing || !unlockQueue.length) return;
+    if (typeof ITVModal === 'undefined' || !ITVModal.open) {
+      unlockQueue.length = 0;
+      return;
+    }
+
+    const detail = unlockQueue.shift();
+    unlockShowing = true;
+    hidePreview();
+    fillUnlockModal(detail);
+    ensureBadgeEarnedModalObserver();
+    ITVModal.open('badge-earned');
+  }
+
+  /**
+   * Queue celebration modals for newly earned badges (logged-in user only).
+   * @param {string[]} newBadgeIds
+   * @param {object[]} [badgeUnlocks]
+   */
+  async function celebrateUnlocks(newBadgeIds, badgeUnlocks) {
+    const ids = Array.isArray(newBadgeIds) ? newBadgeIds : [];
+    if (!ids.length) return;
+
+    const fresh = ids.filter((id) => id && !celebratedBadgeIds.has(id));
+    if (!fresh.length) return;
+    fresh.forEach((id) => celebratedBadgeIds.add(id));
+
+    if (!catalog && typeof loadCatalog === 'function') {
+      await loadCatalog().catch(() => {});
+    }
+
+    for (const id of fresh) {
+      unlockQueue.push(resolveUnlockDetail(id, badgeUnlocks));
+    }
+    showNextUnlockModal();
+  }
+
   async function renderBadgeGrid(badgeIdsOrDetails, options = {}) {
     const { showLocked = false, emptyMessage = 'No badges earned yet.' } = options;
 
@@ -287,6 +376,12 @@ const ITVBadges = (() => {
     return `<ul class="badge-grid" role="list">${cells}</ul>`;
   }
 
+  function clearCelebrationCache() {
+    celebratedBadgeIds.clear();
+    unlockQueue.length = 0;
+    unlockShowing = false;
+  }
+
   return {
     loadCatalog,
     loadNameMap,
@@ -295,6 +390,8 @@ const ITVBadges = (() => {
     renderBadgeGrid,
     bindBadgePreviews,
     hideBadgePreview: hidePreview,
+    celebrateUnlocks,
+    clearCelebrationCache,
     mergeEarnedWithCatalog,
     resolveFromDetails,
     escapeHtml,

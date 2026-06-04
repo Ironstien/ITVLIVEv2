@@ -13,6 +13,8 @@ const STAFF_ACTIONS = [
   'setUserXp',
   'managePlatform',
   'resetUserStats',
+  'resetUserBadges',
+  'resetAllUserBadges',
   'forceDisconnect',
   'blockVideo',
   'unblockVideo',

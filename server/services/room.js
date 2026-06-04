@@ -465,6 +465,30 @@ class Room {
     }
   }
 
+  syncBadgesForUser(userId, badges = []) {
+    if (!userId) return;
+    const list = Array.isArray(badges) ? badges : [];
+    for (const user of this.users.values()) {
+      if (user.userId === userId) {
+        user.badges = [...list];
+      }
+    }
+    for (const entry of this.djQueue) {
+      if (entry.userId === userId) {
+        entry.badges = [...list];
+      }
+    }
+  }
+
+  clearAllOnlineBadges() {
+    for (const user of this.users.values()) {
+      if (user.userId) user.badges = [];
+    }
+    for (const entry of this.djQueue) {
+      entry.badges = [];
+    }
+  }
+
   clearChat(socketId) {
     const user = this.users.get(socketId);
     if (!user) return { error: 'Not connected' };
@@ -733,6 +757,28 @@ class Room {
     return { ok: true, message: msg };
   }
 
+  /**
+   * System chat line when a user earns a badge (visible to the whole room).
+   * @param {string} displayName
+   * @param {string} badgeName
+   */
+  addBadgeEarnedChat(displayName, badgeName) {
+    const name = String(displayName || 'Someone').trim() || 'Someone';
+    const badge = String(badgeName || 'a badge').trim() || 'a badge';
+    this._chatId += 1;
+    const msg = {
+      id: this._chatId,
+      kind: 'badge-earned',
+      displayName: name,
+      badgeName: badge,
+      text: `${name} has just earned ${badge}`,
+      at: Date.now(),
+    };
+    this.chat.push(msg);
+    if (this.chat.length > MAX_CHAT) this.chat.shift();
+    return msg;
+  }
+
   async joinQueue(socketId) {
     const user = this.users.get(socketId);
     if (!user) return { error: 'Not connected' };
@@ -788,6 +834,7 @@ class Room {
         started,
         position: 1,
         queueLength: this.djQueue.length,
+        newBadges,
       };
     }
 
@@ -796,6 +843,7 @@ class Room {
       started: false,
       position: this.djQueue.length,
       queueLength: this.djQueue.length,
+      newBadges,
     };
   }
 

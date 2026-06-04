@@ -29,6 +29,8 @@ const ADMIN_ACTIONS = new Set([
   'setUserXp',
   'managePlatform',
   'resetUserStats',
+  'resetUserBadges',
+  'resetAllUserBadges',
   'forceDisconnect',
   'blockVideo',
   'unblockVideo',
