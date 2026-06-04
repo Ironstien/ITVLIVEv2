@@ -63,4 +63,27 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, requireStaff, requireAdmin, extractBearerToken };
+async function optionalAuth(req, _res, next) {
+  req.user = null;
+  if (!isJwtConfigured() || !isDbConnected()) {
+    next();
+    return;
+  }
+
+  const token = extractBearerToken(req);
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    const payload = verifyToken(token);
+    const user = await findUserById(payload.sub);
+    if (user) req.user = user;
+  } catch (_err) {
+    /* ignore invalid token for public routes */
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireStaff, requireAdmin, optionalAuth, extractBearerToken };

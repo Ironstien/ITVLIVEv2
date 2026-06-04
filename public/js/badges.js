@@ -4,6 +4,9 @@
 const ITVBadges = (() => {
   let catalog = null;
   let catalogPromise = null;
+  let nameById = null;
+  let nameMapPromise = null;
+  let _nameMapLoaded = false;
 
   function escapeHtml(str) {
     return String(str ?? '')
@@ -36,6 +39,35 @@ const ITVBadges = (() => {
 
   function setCatalog(badges) {
     catalog = Array.isArray(badges) ? badges : [];
+    nameById = Object.fromEntries(catalog.map((b) => [b.id, b.name]));
+    _nameMapLoaded = true;
+  }
+
+  async function loadNameMap() {
+    if (nameById) return nameById;
+    if (nameMapPromise) return nameMapPromise;
+
+    nameMapPromise = fetch('/api/badges/catalog')
+      .then((res) => (res.ok ? res.json() : { badges: [] }))
+      .then((data) => {
+        const badges = Array.isArray(data.badges) ? data.badges : [];
+        nameById = Object.fromEntries(badges.map((b) => [b.id, b.name]));
+        _nameMapLoaded = true;
+        return nameById;
+      })
+      .catch(() => {
+        nameById = {};
+        _nameMapLoaded = true;
+        return nameById;
+      });
+
+    return nameMapPromise;
+  }
+
+  function getDisplayName(id) {
+    if (nameById?.[id]) return nameById[id];
+    const fromCat = catalog?.find((b) => b.id === id);
+    return fromCat?.name || null;
   }
 
   function resolveFromDetails(badgeDetails) {
@@ -127,10 +159,15 @@ const ITVBadges = (() => {
 
   return {
     loadCatalog,
+    loadNameMap,
     setCatalog,
+    getDisplayName,
     renderBadgeGrid,
     mergeEarnedWithCatalog,
     resolveFromDetails,
     escapeHtml,
+    get _nameMapLoaded() {
+      return _nameMapLoaded;
+    },
   };
 })();

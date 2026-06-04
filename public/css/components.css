@@ -463,6 +463,25 @@
   box-shadow: 0 0 8px rgba(155, 93, 229, 0.2);
 }
 
+.badge-icon--tier-1 {
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+}
+.badge-icon--tier-2 {
+  box-shadow: 0 0 8px rgba(30, 255, 0, 0.2);
+}
+.badge-icon--tier-3 {
+  box-shadow: 0 0 8px rgba(0, 112, 221, 0.25);
+}
+.badge-icon--tier-4 {
+  box-shadow: 0 0 8px rgba(255, 128, 0, 0.3);
+}
+.badge-icon--tier-5 {
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.35);
+}
+.badge-icon--tier-6 {
+  box-shadow: 0 0 8px rgba(245, 220, 224, 0.35);
+}
+
 .badge-icon__img {
   width: 32px;
   height: 32px;

@@ -3,6 +3,12 @@ const { PlaySession, Vote, XpTransaction, User, Song } = require('../models');
 const { isDbConnected } = require('../config/db');
 const { getLevelForXp } = require('../config/levels');
 const { evaluateAndGrantBadges } = require('./badges');
+const {
+  recordListenBadgeStats,
+  recordVoteBadgeStats,
+  resetVoterStreakForUsers,
+  recordDjPlayBadgeStats,
+} = require('./badge-tracking');
 
 const LISTENER_XP = 1;
 const DJ_XP = 3;
@@ -25,6 +31,7 @@ function computeVoteAggregates(voteEntries) {
   let totalScore = 0;
   let highScore = 0;
   let lowScore = 100;
+  let highScoreCount90 = 0;
 
   for (const [, rawScore] of voteEntries) {
     const score = clampScore(rawScore);
@@ -33,6 +40,7 @@ function computeVoteAggregates(voteEntries) {
     totalScore += score;
     if (score > highScore) highScore = score;
     if (score < lowScore) lowScore = score;
+    if (score >= 90) highScoreCount90 += 1;
   }
 
   const avgScore = voteCount ? Math.round((totalScore / voteCount) * 10) / 10 : 0;
@@ -43,6 +51,7 @@ function computeVoteAggregates(voteEntries) {
     avgScore,
     highScore: voteCount ? highScore : 0,
     lowScore: voteCount ? lowScore : 0,
+    highScoreCount90,
   };
 }
 
@@ -89,7 +98,9 @@ async function grantXpToUser(userId, amount, reason) {
   };
 }
 
-async function persistVotes(playSessionId, voteEntries) {
+async function persistVotes(playSessionId, voteEntries, aggregates) {
+  let isFirstVoter = true;
+
   for (const [userId, rawScore] of voteEntries) {
     if (!isValidObjectId(userId) || !playSessionId) continue;
     const score = clampScore(rawScore);
@@ -98,6 +109,8 @@ async function persistVotes(playSessionId, voteEntries) {
     try {
       await Vote.create({ playSessionId, userId, score });
       await User.findByIdAndUpdate(userId, { $inc: { 'stats.totalVotesGiven': 1 } });
+      await recordVoteBadgeStats(userId, score, aggregates, { isFirstVoter });
+      isFirstVoter = false;
     } catch (err) {
       if (err.code !== 11000) {
         console.warn('[session] vote persist failed:', err.message);
@@ -175,7 +188,7 @@ async function grantVoteXp(voteEntries) {
   return progressUpdates;
 }
 
-async function grantListenerXp(listenerUserIds, djUserId) {
+async function grantListenerXp(listenerUserIds, djUserId, endedAt = Date.now()) {
   const progressUpdates = [];
   const seen = new Set();
 
@@ -186,6 +199,7 @@ async function grantListenerXp(listenerUserIds, djUserId) {
     seen.add(userId);
 
     await User.findByIdAndUpdate(userId, { $inc: { 'stats.totalListens': 1 } });
+    await recordListenBadgeStats(userId, endedAt);
     const progress = await grantXpToUser(userId, LISTENER_XP, 'listen');
     if (progress) {
       progressUpdates.push(progress);
@@ -209,10 +223,14 @@ async function finalizePlaySession({
   djUserId,
   pendingVotes,
   listenerUserIds,
+  eligibleVoterIds,
   endedAt,
+  listenerCountAtStart,
+  previousDjUserId,
 }) {
   const voteEntries = [...pendingVotes.entries()];
   const aggregates = computeVoteAggregates(voteEntries);
+  const endMs = endedAt || Date.now();
 
   const progressUpdates = [];
 
@@ -222,7 +240,7 @@ async function finalizePlaySession({
 
   if (playSessionId) {
     await PlaySession.findByIdAndUpdate(playSessionId, {
-      endedAt: new Date(endedAt || Date.now()),
+      endedAt: new Date(endMs),
       aggregates: {
         voteCount: aggregates.voteCount,
         totalScore: aggregates.totalScore,
@@ -232,8 +250,12 @@ async function finalizePlaySession({
       },
     });
 
-    await persistVotes(playSessionId, voteEntries);
+    await persistVotes(playSessionId, voteEntries, aggregates);
   }
+
+  const voterIds = new Set(voteEntries.map(([uid]) => String(uid)));
+  const toResetStreak = (eligibleVoterIds || []).filter((uid) => !voterIds.has(String(uid)));
+  await resetVoterStreakForUsers(toResetStreak);
 
   const voteProgress = await grantVoteXp(voteEntries);
   progressUpdates.push(...voteProgress);
@@ -242,11 +264,17 @@ async function finalizePlaySession({
 
   if (isValidObjectId(djUserId)) {
     await updateDjStats(djUserId, aggregates);
+    await recordDjPlayBadgeStats(djUserId, {
+      aggregates,
+      listenerCountAtStart,
+      previousDjUserId,
+      endedAt: endMs,
+    });
     const djProgress = await grantXpToUser(djUserId, DJ_XP, 'dj_play');
     if (djProgress) progressUpdates.push(djProgress);
   }
 
-  const listenerProgress = await grantListenerXp(listenerUserIds, djUserId);
+  const listenerProgress = await grantListenerXp(listenerUserIds, djUserId, endMs);
   progressUpdates.push(...listenerProgress);
 
   return { progressUpdates };

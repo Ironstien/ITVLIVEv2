@@ -1,60 +1,14 @@
 /**
- * Generates void-themed placeholder badge PNGs (minimal flat circles + symbol).
+ * Generates void-themed placeholder badge PNGs for missing catalog images.
  * Run: node scripts/generate-badge-placeholders.js
  */
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-const BADGE_IDS = [
-  'account_created',
-  'first_listen',
-  'first_vote',
-  'first_dj_play',
-  'first_playlist',
-  'queue_joined',
-  'listener_10',
-  'listener_50',
-  'voter_10',
-  'voter_50',
-  'dj_5',
-  'dj_25',
-  'level_5',
-  'level_10',
-  'playlist_25_tracks',
-  'two_playlists',
-  'listener_200',
-  'dj_50',
-  'level_20',
-  'level_30',
-  'avg_score_70',
-  'avg_score_85',
-];
-
-const TIER_RIM = {
-  account_created: 1,
-  first_listen: 1,
-  first_vote: 1,
-  first_dj_play: 1,
-  first_playlist: 1,
-  queue_joined: 1,
-  listener_10: 2,
-  listener_50: 2,
-  voter_10: 2,
-  voter_50: 2,
-  dj_5: 2,
-  dj_25: 2,
-  level_5: 2,
-  level_10: 2,
-  playlist_25_tracks: 2,
-  two_playlists: 2,
-  listener_200: 3,
-  dj_50: 3,
-  level_20: 3,
-  level_30: 3,
-  avg_score_70: 3,
-  avg_score_85: 3,
-};
+const ROOT = path.join(__dirname, '..');
+const CATALOG = path.join(ROOT, 'server', 'config', 'badge-catalog.json');
+const outDir = path.join(ROOT, 'public', 'img', 'badges');
 
 const SIZE = 128;
 
@@ -80,13 +34,22 @@ function pngChunk(type, data) {
 }
 
 function tierColors(tier) {
+  if (tier >= 6) {
+    return { bg: [14, 12, 20], rim: [245, 220, 224], accent: [245, 220, 224], inner: [180, 120, 140] };
+  }
+  if (tier >= 5) {
+    return { bg: [14, 12, 20], rim: [255, 215, 0], accent: [255, 107, 53], inner: [200, 140, 40] };
+  }
+  if (tier >= 4) {
+    return { bg: [14, 12, 20], rim: [255, 128, 0], accent: [255, 107, 53], inner: [180, 80, 30] };
+  }
   if (tier >= 3) {
-    return { bg: [14, 12, 20], rim: [155, 93, 229], accent: [255, 107, 53], inner: [123, 44, 191] };
+    return { bg: [14, 12, 20], rim: [0, 112, 221], accent: [46, 196, 182], inner: [30, 80, 160] };
   }
   if (tier >= 2) {
-    return { bg: [14, 12, 20], rim: [123, 44, 191], accent: [155, 93, 229], inner: [90, 24, 154] };
+    return { bg: [14, 12, 20], rim: [30, 255, 0], accent: [123, 44, 191], inner: [20, 120, 40] };
   }
-  return { bg: [14, 12, 20], rim: [90, 24, 154], accent: [123, 44, 191], inner: [74, 28, 120] };
+  return { bg: [14, 12, 20], rim: [255, 255, 255], accent: [155, 93, 229], inner: [90, 24, 154] };
 }
 
 function hashHue(id) {
@@ -95,8 +58,7 @@ function hashHue(id) {
   return h % 360;
 }
 
-function renderBadgePng(id) {
-  const tier = TIER_RIM[id] || 1;
+function renderBadgePng(id, tier) {
   const { bg, rim, accent, inner } = tierColors(tier);
   const hue = hashHue(id);
   const cx = SIZE / 2;
@@ -153,9 +115,6 @@ function renderBadgePng(id) {
   ihdr.writeUInt32BE(SIZE, 4);
   ihdr[8] = 8;
   ihdr[9] = 6;
-  ihdr[10] = 0;
-  ihdr[11] = 0;
-  ihdr[12] = 0;
 
   const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   return Buffer.concat([
@@ -166,13 +125,25 @@ function renderBadgePng(id) {
   ]);
 }
 
-const outDir = path.join(__dirname, '..', 'public', 'img', 'badges');
-fs.mkdirSync(outDir, { recursive: true });
+function main() {
+  const catalog = JSON.parse(fs.readFileSync(CATALOG, 'utf8'));
+  fs.mkdirSync(outDir, { recursive: true });
 
-for (const id of BADGE_IDS) {
-  const outPath = path.join(outDir, `${id}.png`);
-  fs.writeFileSync(outPath, renderBadgePng(id));
-  console.log('wrote', outPath);
+  let wrote = 0;
+  let skipped = 0;
+
+  for (const b of catalog) {
+    const outPath = path.join(outDir, `${b.id}.png`);
+    if (fs.existsSync(outPath)) {
+      skipped += 1;
+      continue;
+    }
+    fs.writeFileSync(outPath, renderBadgePng(b.id, b.tier || 1));
+    wrote += 1;
+    console.log('placeholder', b.id);
+  }
+
+  console.log(`Done — ${wrote} placeholders written, ${skipped} existing kept in public/img/badges/`);
 }
 
-console.log(`Done — ${BADGE_IDS.length} badge PNGs in public/img/badges/`);
+main();

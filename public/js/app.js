@@ -382,10 +382,21 @@
           if (!existing.has(id)) existing.add(id);
         }
         accountUser.badges = [...existing];
+        const formatBadgeToast = (id) => {
+          if (typeof ITVBadges !== 'undefined') {
+            const cat = ITVBadges.getDisplayName?.(id);
+            if (cat) return cat;
+          }
+          return String(id).replace(/_/g, ' ');
+        };
+        if (typeof ITVBadges !== 'undefined' && !ITVBadges._nameMapLoaded) {
+          ITVBadges.loadNameMap?.();
+        }
         if (progress.newBadges.length === 1) {
-          toast(`Badge earned: ${progress.newBadges[0].replace(/_/g, ' ')}`);
+          toast(`Badge earned: ${formatBadgeToast(progress.newBadges[0])}`);
         } else {
-          toast(`${progress.newBadges.length} new badges earned`);
+          const names = progress.newBadges.map(formatBadgeToast).join(', ');
+          toast(`Badges earned: ${names}`);
         }
       }
       if (progress.leveledUp) {

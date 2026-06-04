@@ -7,7 +7,9 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "reset-password": "node scripts/reset-password.js",
-    "reset-all-users": "node scripts/reset-all-users.js"
+    "reset-all-users": "node scripts/reset-all-users.js",
+    "badges:import": "node scripts/import-badges-from-xlsx.js",
+    "badges:images": "node scripts/sync-badge-images.js && node scripts/generate-badge-placeholders.js"
   },
   "engines": {
     "node": ">=18"

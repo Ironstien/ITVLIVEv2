@@ -4,8 +4,9 @@ const { findUserDocumentById } = require('./auth');
 const { getRankNameForLevel, getRankColorForLevel, getStaffRoleLabel, getStaffRoleColor } = require('../config/levels');
 const { resolveBadgeDetails } = require('../config/badges');
 const { evaluateAndGrantBadges } = require('./badges');
+const { recordProfileViewBadgeStats } = require('./badge-tracking');
 
-async function getPublicUserProfile(userId) {
+async function getPublicUserProfile(userId, viewerUserId = null) {
   if (!isDbConnected()) {
     return { error: 'Database not available' };
   }
@@ -13,6 +14,10 @@ async function getPublicUserProfile(userId) {
   let user = await findUserDocumentById(userId);
   if (!user) {
     return { error: 'User not found' };
+  }
+
+  if (viewerUserId && String(viewerUserId) !== String(userId)) {
+    await recordProfileViewBadgeStats(viewerUserId);
   }
 
   await evaluateAndGrantBadges(user);

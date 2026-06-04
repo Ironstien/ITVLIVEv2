@@ -22,6 +22,7 @@ const { createPlaySessionRecord, finalizePlaySession } = require('./session');
 const platform = require('./platform');
 const { isModOrAbove } = require('../config/permissions');
 const { evaluateAndGrantBadgesById } = require('./badges');
+const { recordChatBadgeStats, recordCrateDigger } = require('./badge-tracking');
 const { User } = require('../models');
 
 const MAX_CHAT = 80;
@@ -60,6 +61,10 @@ class Room {
     this._chatMutes = new Map();
     /** @type {boolean} when true, only staff may chat */
     this._chatLocked = false;
+    /** @type {string|null} DJ userId for the track that just ended */
+    this._previousDjUserId = null;
+    /** @type {number} authenticated listeners (excl. DJ) at last track start */
+    this._listenerCountAtTrackStart = 0;
 
     if (isTestDjEnabled()) {
       this._ensureTestDjUser();
@@ -194,6 +199,16 @@ class Room {
     }
   }
 
+  _countAuthenticatedListeners(excludeUserId = null) {
+    let n = 0;
+    for (const user of this.users.values()) {
+      if (user.isTestDj || !user.userId || !user.isAuthenticated) continue;
+      if (excludeUserId && user.userId === excludeUserId) continue;
+      n += 1;
+    }
+    return n;
+  }
+
   _listenerUserIdsAtTrackEnd(djUserId) {
     const ids = [];
     for (const user of this.users.values()) {
@@ -243,6 +258,13 @@ class Room {
     const sessionId = finished.playSessionId;
     const pending = this._pendingVotes.get(sessionId) || new Map();
 
+    const eligibleVoterIds = [];
+    for (const u of this.users.values()) {
+      if (u.isTestDj || !u.userId || !u.isAuthenticated) continue;
+      if (u.userId === finished.userId) continue;
+      eligibleVoterIds.push(u.userId);
+    }
+
     const result = await finalizePlaySession({
       sessionKey: sessionId,
       playSessionId: finished.mongoPlaySessionId || null,
@@ -252,7 +274,10 @@ class Room {
       djUserId: finished.userId,
       pendingVotes: pending,
       listenerUserIds: this._listenerUserIdsAtTrackEnd(finished.userId),
+      eligibleVoterIds,
       endedAt: Date.now(),
+      listenerCountAtStart: this._listenerCountAtTrackStart ?? 0,
+      previousDjUserId: this._previousDjUserId ?? null,
     });
 
     this._finalizedVoteSessions.add(sessionId);
@@ -698,6 +723,13 @@ class Room {
     };
     this.chat.push(msg);
     if (this.chat.length > MAX_CHAT) this.chat.shift();
+
+    if (user.userId) {
+      recordChatBadgeStats(user.userId, trimmed).catch((err) => {
+        console.warn('[room] chat badge stats failed:', err.message);
+      });
+    }
+
     return { ok: true, message: msg };
   }
 
@@ -832,6 +864,7 @@ class Room {
 
     const url = EXPORT_URL(this.nowPlaying.videoId);
     const item = await addItem(user.userId, active.id, url, this.nowPlaying.title);
+    await recordCrateDigger(user.userId);
     return { ok: true, item, playlistId: active.id };
   }
 
@@ -890,6 +923,9 @@ class Room {
     }
 
     this._clearTrackEndTimer();
+
+    this._previousDjUserId = this.nowPlaying?.userId ?? null;
+    this._listenerCountAtTrackStart = this._countAuthenticatedListeners(userId);
 
     const playSessionId = this._newPlaySessionId();
     const playbackSessionId = this._newPlaybackSessionId();

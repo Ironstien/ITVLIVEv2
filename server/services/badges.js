@@ -21,14 +21,46 @@ async function buildPlaylistBadgeContext(userId) {
   const playlistCount = playlists.length;
   let maxPlaylistTracks = 0;
   let hasPlaylistWithItem = false;
+  let qualifiedPlaylists5 = 0;
+  let qualifiedPlaylists10 = 0;
 
   for (const p of playlists) {
     const count = await PlaylistItem.countDocuments({ playlistId: p._id });
     if (count > 0) hasPlaylistWithItem = true;
     if (count > maxPlaylistTracks) maxPlaylistTracks = count;
+    if (count >= 5) qualifiedPlaylists5 += 1;
+    if (count >= 5) qualifiedPlaylists10 += 1;
   }
 
-  return { playlistCount, maxPlaylistTracks, hasPlaylistWithItem };
+  return {
+    playlistCount,
+    maxPlaylistTracks,
+    hasPlaylistWithItem,
+    qualifiedPlaylists5,
+    qualifiedPlaylists10,
+  };
+}
+
+/**
+ * Grant or revoke manual badges (admin).
+ * @param {string} userId
+ * @param {string} badgeId
+ * @param {'grant'|'revoke'} action
+ */
+async function setManualBadge(userId, badgeId, action) {
+  if (!isDbConnected() || !isValidObjectId(userId) || !badgeId) {
+    return { error: 'Invalid request' };
+  }
+
+  if (action === 'grant') {
+    await User.findByIdAndUpdate(userId, { $addToSet: { badges: badgeId } });
+    return { ok: true, granted: badgeId };
+  }
+  if (action === 'revoke') {
+    await User.findByIdAndUpdate(userId, { $pull: { badges: badgeId } });
+    return { ok: true, revoked: badgeId };
+  }
+  return { error: 'Unknown action' };
 }
 
 /**
@@ -78,4 +110,5 @@ module.exports = {
   buildPlaylistBadgeContext,
   evaluateAndGrantBadges,
   evaluateAndGrantBadgesById,
+  setManualBadge,
 };

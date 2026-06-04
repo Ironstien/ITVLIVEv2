@@ -77,7 +77,7 @@ router.get('/progression', (_req, res) => {
     ],
     badges: {
       intro:
-        'Badges are achievements you earn automatically by listening, voting, DJing, and leveling up. View yours in My Data, or click any registered username in chat to see their profile and badges.',
+        'Badges are achievements you earn automatically by listening, voting, DJing, playlists, chat, and leveling up. The full catalog appears in My Data (locked until earned). Click a registered username in chat to see their earned badges.',
       placeholder: null,
     },
   });

@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { getPublicUserProfile } = require('../services/userProfile');
 const { isDbConnected } = require('../config/db');
+const { optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(str) && String(new mongoose.Types.ObjectId(str)) === str;
 }
 
-router.get('/:userId/profile', async (req, res) => {
+router.get('/:userId/profile', optionalAuth, async (req, res) => {
   if (!isDbConnected()) {
     res.status(503).json({ error: 'Database not available' });
     return;
@@ -24,7 +25,8 @@ router.get('/:userId/profile', async (req, res) => {
   }
 
   try {
-    const result = await getPublicUserProfile(userId);
+    const viewerId = req.user?.id || req.user?._id || null;
+    const result = await getPublicUserProfile(userId, viewerId);
     if (result.error) {
       res.status(result.error === 'User not found' ? 404 : 503).json({ error: result.error });
       return;

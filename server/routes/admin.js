@@ -15,6 +15,8 @@ const {
 const platform = require('../services/platform');
 const { room, emitUserProgress, forceDisconnectUser } = require('../sockets');
 const { logStaffAction } = require('../services/staffAudit');
+const { setManualBadge } = require('../services/badges');
+const { MANUAL_BADGE_IDS, getBadgeDefinition } = require('../config/badges');
 
 const router = express.Router();
 
@@ -326,6 +328,57 @@ router.post('/users/:userId/disconnect', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('[admin] force disconnect failed:', err.message);
     res.status(500).json({ error: 'Failed to disconnect user' });
+  }
+});
+
+router.post('/users/:userId/badges', requireAdmin, async (req, res) => {
+  if (!can(req.user, 'assignStaffRole')) {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
+  }
+
+  const badgeId = String(req.body?.badgeId || '').trim();
+  const action = req.body?.action === 'revoke' ? 'revoke' : 'grant';
+
+  if (!badgeId) {
+    res.status(400).json({ error: 'badgeId required' });
+    return;
+  }
+
+  const def = getBadgeDefinition(badgeId);
+  if (!def) {
+    res.status(400).json({ error: 'Unknown badge id' });
+    return;
+  }
+
+  if (action === 'grant' && !MANUAL_BADGE_IDS.includes(badgeId)) {
+    res.status(400).json({
+      error: 'Only manual tier-6 badges can be granted via admin',
+      manualBadgeIds: MANUAL_BADGE_IDS,
+    });
+    return;
+  }
+
+  try {
+    const result = await setManualBadge(req.params.userId, badgeId, action);
+    if (result.error) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    await logStaffAction({
+      actorUserId: req.user.id,
+      actorUsername: req.user.username,
+      action: action === 'grant' ? 'grantBadge' : 'revokeBadge',
+      targetUserId: req.params.userId,
+      targetUsername: null,
+      details: badgeId,
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('[admin] badge update failed:', err.message);
+    res.status(500).json({ error: 'Failed to update badge' });
   }
 });
 
