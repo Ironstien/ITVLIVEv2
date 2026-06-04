@@ -118,6 +118,121 @@ const ITVBadges = (() => {
    * @param {string[]|object[]} badgeIdsOrDetails
    * @param {{ showLocked?: boolean, emptyMessage?: string }} options
    */
+  let previewEl = null;
+  let previewAnchor = null;
+
+  function ensurePreviewEl() {
+    if (previewEl) return previewEl;
+
+    if (!window.__itvBadgePreviewListeners) {
+      window.__itvBadgePreviewListeners = true;
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hidePreview();
+      });
+      window.addEventListener('scroll', hidePreview, true);
+    }
+
+    previewEl = document.createElement('div');
+    previewEl.id = 'badge-preview';
+    previewEl.className = 'badge-preview';
+    previewEl.setAttribute('role', 'tooltip');
+    previewEl.setAttribute('aria-hidden', 'true');
+    previewEl.innerHTML = `
+      <img class="badge-preview__img" alt="" width="120" height="120" />
+      <p class="badge-preview__name"></p>
+      <p class="badge-preview__unlock"></p>
+    `;
+    document.body.appendChild(previewEl);
+    return previewEl;
+  }
+
+  function hidePreview() {
+    if (!previewEl) return;
+    previewEl.classList.remove('badge-preview--visible');
+    previewEl.setAttribute('aria-hidden', 'true');
+    previewAnchor = null;
+  }
+
+  function positionPreview(anchor) {
+    if (!previewEl || !anchor) return;
+
+    previewEl.classList.add('badge-preview--visible');
+    previewEl.setAttribute('aria-hidden', 'false');
+
+    const gap = 10;
+    const anchorRect = anchor.getBoundingClientRect();
+    const previewRect = previewEl.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let left = anchorRect.left + anchorRect.width / 2 - previewRect.width / 2;
+    let top = anchorRect.top - previewRect.height - gap;
+
+    if (top < 8) {
+      top = anchorRect.bottom + gap;
+    }
+    if (left < 8) left = 8;
+    if (left + previewRect.width > vw - 8) {
+      left = Math.max(8, vw - previewRect.width - 8);
+    }
+    if (top + previewRect.height > vh - 8) {
+      top = Math.max(8, vh - previewRect.height - 8);
+    }
+
+    previewEl.style.left = `${Math.round(left)}px`;
+    previewEl.style.top = `${Math.round(top)}px`;
+  }
+
+  function showPreview(anchor) {
+    const name = anchor.dataset.badgeName || '';
+    const desc = anchor.dataset.badgeDesc || '';
+    const image = anchor.dataset.badgeImage || '';
+
+    const el = ensurePreviewEl();
+    previewAnchor = anchor;
+
+    const img = el.querySelector('.badge-preview__img');
+    const nameEl = el.querySelector('.badge-preview__name');
+    const unlockEl = el.querySelector('.badge-preview__unlock');
+
+    if (img) {
+      img.src = image;
+      img.alt = name;
+    }
+    if (nameEl) nameEl.textContent = name;
+    if (unlockEl) unlockEl.textContent = desc || 'Achievement unlocked';
+
+    el.classList.add('badge-preview--visible');
+    el.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => positionPreview(anchor));
+  }
+
+  /**
+   * Wire hover/focus preview for earned badges inside a grid container.
+   * @param {HTMLElement|null} root
+   */
+  function bindBadgePreviews(root) {
+    if (!root) return;
+
+    hidePreview();
+
+    const earned = root.querySelectorAll('.badge-grid__item--earned');
+    earned.forEach((item) => {
+      if (item.dataset.badgePreviewBound === '1') return;
+      item.dataset.badgePreviewBound = '1';
+
+      item.addEventListener('mouseenter', () => showPreview(item));
+      item.addEventListener('focus', () => showPreview(item));
+      item.addEventListener('mouseleave', hidePreview);
+      item.addEventListener('blur', hidePreview);
+    });
+
+    if (!root.dataset.badgePreviewScrollBound) {
+      root.dataset.badgePreviewScrollBound = '1';
+      root.addEventListener('scroll', hidePreview, { passive: true });
+    }
+  }
+
   async function renderBadgeGrid(badgeIdsOrDetails, options = {}) {
     const { showLocked = false, emptyMessage = 'No badges earned yet.' } = options;
 
@@ -146,8 +261,23 @@ const ITVBadges = (() => {
         const img = b.image
           ? `<img class="badge-icon__img" src="${escapeHtml(b.image)}" alt="" width="32" height="32" loading="lazy" />`
           : `<span class="badge-icon__fallback" aria-hidden="true">◇</span>`;
+
+        if (locked) {
+          const title = b.description ? `${b.name} — ${b.description}` : b.name;
+          return `
+          <li class="badge-grid__item badge-grid__item--locked" title="${escapeHtml(title)}">
+            <span class="badge-icon badge-icon--tier-${b.tier || 0}">${img}</span>
+            <span class="badge-grid__label">${escapeHtml(b.name)}</span>
+          </li>`;
+        }
+
         return `
-          <li class="badge-grid__item${locked ? ' badge-grid__item--locked' : ''}" title="${escapeHtml(b.name)}${b.description ? ` — ${escapeHtml(b.description)}` : ''}">
+          <li class="badge-grid__item badge-grid__item--earned"
+            tabindex="0"
+            data-badge-name="${escapeHtml(b.name)}"
+            data-badge-desc="${escapeHtml(b.description || '')}"
+            data-badge-image="${escapeHtml(b.image || '')}"
+            aria-label="${escapeHtml(b.name)}: ${escapeHtml(b.description || 'Unlocked')}">
             <span class="badge-icon badge-icon--tier-${b.tier || 0}">${img}</span>
             <span class="badge-grid__label">${escapeHtml(b.name)}</span>
           </li>`;
@@ -163,6 +293,8 @@ const ITVBadges = (() => {
     setCatalog,
     getDisplayName,
     renderBadgeGrid,
+    bindBadgePreviews,
+    hideBadgePreview: hidePreview,
     mergeEarnedWithCatalog,
     resolveFromDetails,
     escapeHtml,

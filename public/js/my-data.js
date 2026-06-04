@@ -236,6 +236,10 @@ const ITVMyData = (() => {
         ${votesHtml}
       </div>
     `;
+
+    if (typeof ITVBadges !== 'undefined' && ITVBadges.bindBadgePreviews) {
+      ITVBadges.bindBadgePreviews(bodyEl);
+    }
   }
 
   async function load() {
