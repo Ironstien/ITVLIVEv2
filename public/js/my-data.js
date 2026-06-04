@@ -117,13 +117,20 @@ const ITVMyData = (() => {
 
     const staffHtml = renderSection('Staff', [renderRow('Staff role', staffRoleValue)].join(''));
 
-    const badgeGridHtml =
-      typeof ITVBadges !== 'undefined'
-        ? await ITVBadges.renderBadgeGrid(badges?.ids || [], {
-            showLocked: true,
-            emptyMessage: 'No badges earned yet — play, vote, and DJ to unlock.',
-          })
-        : formatValue(badges?.ids || []);
+    let badgeGridHtml = '<p class="badge-grid-empty muted">Could not load badge catalog.</p>';
+    if (typeof ITVBadges !== 'undefined') {
+      try {
+        badgeGridHtml = await ITVBadges.renderBadgeGrid(badges?.ids || [], {
+          showLocked: true,
+          emptyMessage: 'No badges earned yet — play, vote, and DJ to unlock.',
+        });
+      } catch (badgeErr) {
+        console.warn('[my-data] badge grid failed:', badgeErr);
+        badgeGridHtml = `<p class="badge-grid-empty muted">${escapeHtml(badgeErr.message || 'Badge display failed')}</p>`;
+      }
+    } else {
+      badgeGridHtml = formatValue(badges?.ids || []);
+    }
 
     const badgesHtml = `
       <section class="my-data-section">

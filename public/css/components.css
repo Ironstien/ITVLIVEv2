@@ -440,8 +440,16 @@
 }
 
 .badge-grid__item--locked {
-  opacity: 0.35;
-  filter: grayscale(0.85);
+  opacity: 0.28;
+  filter: grayscale(1) brightness(0.65);
+}
+
+.badge-grid__item--locked .badge-icon__img {
+  opacity: 0.45;
+}
+
+.badge-grid__item--locked .badge-grid__label {
+  opacity: 0.5;
 }
 
 .badge-grid__label {

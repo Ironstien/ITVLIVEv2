@@ -20,7 +20,7 @@ async function getUserFullData(userId) {
     return { error: 'Database not available' };
   }
 
-  const user = await findUserDocumentById(userId);
+  let user = await findUserDocumentById(userId);
   if (!user) {
     return { error: 'User not found' };
   }
