@@ -56,7 +56,7 @@ app.get('/health', (_req, res) => {
   res.status(status.ready ? 200 : 503).json({
     ok: status.ready,
     name: 'INTO THE VOID',
-    version: '2.1.0',
+    version: '2.1.1',
     phase: PHASE,
     db: status.db,
     jwt: status.jwt,
