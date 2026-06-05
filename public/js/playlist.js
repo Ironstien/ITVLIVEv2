@@ -17,6 +17,7 @@ const ITVPlaylist = (() => {
   const btnAdd = document.getElementById('btn-playlist-add');
   const btnImport = document.getElementById('btn-playlist-import');
   const btnExport = document.getElementById('btn-playlist-export');
+  const btnShuffle = document.getElementById('btn-playlist-shuffle');
 
   let enabled = false;
   let playlists = [];
@@ -48,6 +49,10 @@ const ITVPlaylist = (() => {
   const deleteConfirmBtn = document.getElementById('playlist-delete-confirm');
   const importModalEl = document.querySelector('[data-modal-id="playlist-import"]');
   const createModalEl = document.querySelector('[data-modal-id="playlist-new"]');
+  const shuffleModalEl = document.querySelector('[data-modal-id="playlist-shuffle"]');
+  const shuffleNameEl = document.getElementById('playlist-shuffle-name');
+  const shuffleCancelBtn = document.getElementById('playlist-shuffle-cancel');
+  const shuffleConfirmBtn = document.getElementById('playlist-shuffle-confirm');
 
   function thumbUrl(youtubeId) {
     return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
@@ -88,9 +93,11 @@ const ITVPlaylist = (() => {
     enabled = !isGuest;
     if (panel) panel.classList.toggle('panel-playlist--guest', isGuest);
 
-    [selectEl, urlInput, btnAdd, btnNew, btnActive, btnRename, btnDelete, btnImport, btnExport].forEach((el) => {
-      if (el) el.disabled = isGuest;
-    });
+    [selectEl, urlInput, btnAdd, btnNew, btnActive, btnRename, btnDelete, btnImport, btnExport, btnShuffle].forEach(
+      (el) => {
+        if (el) el.disabled = isGuest;
+      }
+    );
 
     if (isGuest) {
       accountUserId = null;
@@ -154,6 +161,14 @@ const ITVPlaylist = (() => {
     updateActiveButton();
     updateRenameButton();
     updateDeleteButton();
+    updateShuffleButton();
+  }
+
+  function updateShuffleButton() {
+    if (!btnShuffle) return;
+    const hasTracks = items.length > 0;
+    btnShuffle.disabled = !enabled || !selectedId || !hasTracks;
+    btnShuffle.title = hasTracks ? 'Shuffle playlist' : 'Add tracks before shuffling';
   }
 
   function getDjQueueMarkerState() {
@@ -294,11 +309,13 @@ const ITVPlaylist = (() => {
 
     if (!selectedId) {
       itemsEl.innerHTML = '<li class="muted">Create a playlist to get started.</li>';
+      updateShuffleButton();
       return;
     }
 
     if (!items.length) {
       itemsEl.innerHTML = '<li class="muted">No tracks yet — paste a URL or import a .txt file.</li>';
+      updateShuffleButton();
       return;
     }
 
@@ -321,6 +338,8 @@ const ITVPlaylist = (() => {
         itemsEl.appendChild(createDjMarkerLi(marker.label));
       }
     });
+
+    updateShuffleButton();
   }
 
   function updateFromRoomState() {
@@ -421,6 +440,17 @@ const ITVPlaylist = (() => {
       }).length;
   }
 
+  function resolveProgressCount(textOrCount) {
+    if (typeof textOrCount === 'number') return Math.max(1, textOrCount);
+    return Math.max(1, countImportLines(textOrCount));
+  }
+
+  function getProgressModalEl(modalId) {
+    if (modalId === 'playlist-import') return importModalEl;
+    if (modalId === 'playlist-shuffle') return shuffleModalEl;
+    return createModalEl;
+  }
+
   function getModalCard(modalEl) {
     return modalEl?.querySelector('.modal-card') || null;
   }
@@ -430,7 +460,7 @@ const ITVPlaylist = (() => {
     if (label) label.textContent = text;
   }
 
-  function enterIndeterminateProgress(modalEl, lineCount) {
+  function enterIndeterminateProgress(modalEl, lineCount, stillWorkingLabel) {
     if (progressTimer) {
       clearInterval(progressTimer);
       progressTimer = null;
@@ -446,13 +476,14 @@ const ITVPlaylist = (() => {
     if (bar) bar.style.width = '';
 
     const msg =
-      lineCount > 15
+      stillWorkingLabel ||
+      (lineCount > 15
         ? `Still working — importing ${lineCount} tracks may take a minute.`
-        : 'Still working — hang tight…';
+        : 'Still working — hang tight…');
     setImportProgressLabel(modalEl, msg);
   }
 
-  function resetImportProgress(modalEl) {
+  function resetImportProgress(modalEl, defaultLabel = 'Importing tracks…') {
     const card = getModalCard(modalEl);
     const progress = modalEl?.querySelector('.modal-import-progress');
     const bar = modalEl?.querySelector('.modal-import-progress__bar');
@@ -469,7 +500,7 @@ const ITVPlaylist = (() => {
       track.removeAttribute('aria-busy');
       track.setAttribute('aria-valuenow', '0');
     }
-    setImportProgressLabel(modalEl, 'Importing tracks…');
+    setImportProgressLabel(modalEl, defaultLabel);
     progressValue = 0;
 
     if (progressTimer) {
@@ -485,7 +516,11 @@ const ITVPlaylist = (() => {
     importBusy = false;
   }
 
-  function startImportProgress(modalEl, text) {
+  function startImportProgress(modalEl, textOrCount, progressOptions = {}) {
+    const {
+      workingLabel = 'Importing tracks…',
+      stillWorkingLabel = null,
+    } = progressOptions;
     const card = getModalCard(modalEl);
     const progress = modalEl?.querySelector('.modal-import-progress');
     const bar = modalEl?.querySelector('.modal-import-progress__bar');
@@ -494,7 +529,7 @@ const ITVPlaylist = (() => {
     importBusy = true;
     if (card) card.classList.add('is-importing');
     if (progress) progress.classList.remove('hidden');
-    setImportProgressLabel(modalEl, 'Importing tracks…');
+    setImportProgressLabel(modalEl, workingLabel);
 
     blockEscapeHandler = (e) => {
       if (e.key === 'Escape') {
@@ -504,7 +539,7 @@ const ITVPlaylist = (() => {
     };
     document.addEventListener('keydown', blockEscapeHandler, true);
 
-    const lineCount = Math.max(1, countImportLines(text));
+    const lineCount = resolveProgressCount(textOrCount);
     const initialTarget = 45;
     const initialMs = 1500;
     const tickMs = 120;
@@ -523,12 +558,13 @@ const ITVPlaylist = (() => {
 
       if (t >= 1) {
         indeterminate = true;
-        enterIndeterminateProgress(modalEl, lineCount);
+        enterIndeterminateProgress(modalEl, lineCount, stillWorkingLabel);
       }
     }, tickMs);
   }
 
-  async function finishImportProgress(modalEl, modalId, success) {
+  async function finishImportProgress(modalEl, modalId, success, progressOptions = {}) {
+    const { completeLabel = 'Import complete' } = progressOptions;
     const bar = modalEl?.querySelector('.modal-import-progress__bar');
     const track = modalEl?.querySelector('.modal-import-progress__track');
 
@@ -546,12 +582,18 @@ const ITVPlaylist = (() => {
       bar.style.width = '100%';
     }
     if (track) track.setAttribute('aria-valuenow', '100');
-    setImportProgressLabel(modalEl, 'Import complete');
+    setImportProgressLabel(modalEl, completeLabel);
     progressValue = 100;
 
     await new Promise((resolve) => setTimeout(resolve, 400));
 
-    resetImportProgress(modalEl);
+    const defaultLabel =
+      modalId === 'playlist-shuffle'
+        ? 'Shuffling tracks…'
+        : modalId === 'playlist-new'
+          ? 'Importing tracks…'
+          : 'Importing tracks…';
+    resetImportProgress(modalEl, defaultLabel);
 
     if (success) {
       ITVModal.close(modalId);
@@ -560,21 +602,24 @@ const ITVPlaylist = (() => {
       if (importOverwriteBtn) importOverwriteBtn.disabled = !hasPlaylist;
       if (importAppendBtn) importAppendBtn.disabled = !hasPlaylist;
       if (importNewBtn) importNewBtn.disabled = false;
+    } else if (modalId === 'playlist-shuffle') {
+      if (shuffleConfirmBtn) shuffleConfirmBtn.disabled = false;
+      if (shuffleCancelBtn) shuffleCancelBtn.disabled = false;
     } else if (modalId === 'playlist-new' && newSubmitBtn) {
       newSubmitBtn.disabled = false;
     }
   }
 
-  async function runImportWithProgress(modalId, text, work) {
-    const modalEl = modalId === 'playlist-import' ? importModalEl : createModalEl;
+  async function runImportWithProgress(modalId, textOrCount, work, progressOptions = {}) {
+    const modalEl = getProgressModalEl(modalId);
     if (!modalEl) return;
 
-    startImportProgress(modalEl, text);
+    startImportProgress(modalEl, textOrCount, progressOptions);
     try {
       await work();
-      await finishImportProgress(modalEl, modalId, true);
+      await finishImportProgress(modalEl, modalId, true, progressOptions);
     } catch (err) {
-      await finishImportProgress(modalEl, modalId, false);
+      await finishImportProgress(modalEl, modalId, false, progressOptions);
       setStatus(err.message, true);
       if (modalId === 'playlist-new' && newErrorEl) {
         newErrorEl.textContent = err.message;
@@ -796,6 +841,47 @@ const ITVPlaylist = (() => {
     }
   }
 
+  function openShuffleModal() {
+    if (!selectedId || !items.length) return;
+    const current = playlists.find((p) => p.id === selectedId);
+    if (shuffleNameEl) shuffleNameEl.textContent = current?.name || 'this playlist';
+    resetImportProgress(shuffleModalEl, 'Shuffling tracks…');
+    if (shuffleConfirmBtn) shuffleConfirmBtn.disabled = false;
+    if (shuffleCancelBtn) shuffleCancelBtn.disabled = false;
+    ITVModal.open('playlist-shuffle');
+  }
+
+  async function confirmShufflePlaylist() {
+    if (!selectedId || !items.length || importBusy) return;
+
+    const playlistId = selectedId;
+    const playlistName = playlists.find((p) => p.id === playlistId)?.name || 'Playlist';
+    const trackCount = items.length;
+
+    if (shuffleConfirmBtn) shuffleConfirmBtn.disabled = true;
+    if (shuffleCancelBtn) shuffleCancelBtn.disabled = true;
+
+    try {
+      await runImportWithProgress('playlist-shuffle', trackCount, async () => {
+        const data = await api(`/api/playlists/${playlistId}/shuffle`, { method: 'POST' });
+        if (playlistId === selectedId) {
+          items = data.items || [];
+          renderItems();
+        }
+      }, {
+        workingLabel: 'Shuffling tracks…',
+        completeLabel: 'Shuffle complete',
+        stillWorkingLabel:
+          trackCount > 15
+            ? `Still working — shuffling ${trackCount} tracks may take a moment.`
+            : 'Still working — hang tight…',
+      });
+      setStatus(`Shuffled "${playlistName}"`);
+    } catch (_err) {
+      // runImportWithProgress already surfaced the error
+    }
+  }
+
   async function exportPlaylist() {
     if (!selectedId) return;
     try {
@@ -871,6 +957,9 @@ const ITVPlaylist = (() => {
     });
 
     btnExport?.addEventListener('click', exportPlaylist);
+    btnShuffle?.addEventListener('click', openShuffleModal);
+    shuffleCancelBtn?.addEventListener('click', () => ITVModal.close('playlist-shuffle'));
+    shuffleConfirmBtn?.addEventListener('click', confirmShufflePlaylist);
 
     btnImport?.addEventListener('click', () => {
       importFile?.click();
@@ -884,7 +973,7 @@ const ITVPlaylist = (() => {
       openImportModal(text);
     });
 
-    [importModalEl, createModalEl].forEach((modalEl) => {
+    [importModalEl, createModalEl, shuffleModalEl].forEach((modalEl) => {
       modalEl?.addEventListener(
         'click',
         (e) => {
@@ -920,6 +1009,16 @@ const ITVPlaylist = (() => {
       if (e.target === createModal && createForImport) {
         pendingImportText = null;
         resetCreateModal();
+      }
+    });
+
+    shuffleModalEl?.querySelector('[data-modal-close]')?.addEventListener('click', () => {
+      if (importBusy) return;
+    });
+    shuffleModalEl?.addEventListener('click', (e) => {
+      if (importBusy && e.target === shuffleModalEl) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
       }
     });
   }

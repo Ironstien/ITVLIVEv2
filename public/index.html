@@ -164,6 +164,7 @@
             <input type="file" id="playlist-import-file" accept=".txt,text/plain" class="hidden" />
             <button type="button" class="btn-ghost btn-sm" id="btn-playlist-import" disabled>Import</button>
             <button type="button" class="btn-ghost btn-sm" id="btn-playlist-export" disabled>Export</button>
+            <button type="button" class="btn-ghost btn-sm" id="btn-playlist-shuffle" disabled>Shuffle</button>
           </div>
         </div>
         </div>
@@ -576,6 +577,27 @@
       </div>
     </div>
 
+    <div class="modal hidden" data-modal-id="playlist-shuffle" role="dialog" aria-labelledby="modal-playlist-shuffle-title" aria-hidden="true">
+      <div class="modal-card modal-card--auth">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-playlist-shuffle-title">Shuffle playlist</h2>
+        <p class="modal-card__lead">
+          Shuffle all tracks in <strong id="playlist-shuffle-name">this playlist</strong>? The track order will be
+          randomized.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="modal-action-btn auth-submit" id="playlist-shuffle-cancel">Cancel</button>
+          <button type="button" class="modal-action-btn auth-submit" id="playlist-shuffle-confirm">Yes, shuffle</button>
+        </div>
+        <div class="modal-import-progress hidden" id="playlist-shuffle-progress" aria-live="polite">
+          <p class="modal-import-progress__label">Shuffling tracks…</p>
+          <div class="modal-import-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="modal-import-progress__bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal hidden" data-modal-id="playlist-delete" role="dialog" aria-labelledby="modal-playlist-delete-title" aria-hidden="true">
       <div class="modal-card modal-card--auth">
         <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
@@ -599,7 +621,7 @@
     <script src="/js/modal.js?v=11"></script>
     <script src="/js/auth.js?v=11"></script>
     <script src="/js/auth-ui.js?v=11"></script>
-    <script src="/js/playlist.js?v=18"></script>
+    <script src="/js/playlist.js?v=19"></script>
     <script src="/js/player.js?v=11"></script>
     <script src="/js/nav-progress.js?v=1"></script>
     <script src="https://www.youtube.com/iframe_api"></script>

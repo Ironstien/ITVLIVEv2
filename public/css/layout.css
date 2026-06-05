@@ -609,11 +609,11 @@ body.panel-chat-collapsed .panel-chat.panel {
   display: flex;
   align-items: center;
   width: max-content;
-  gap: 3rem;
 }
 
 .alerts-banner__text {
   margin: 0;
+  flex-shrink: 0;
   font-size: 0.8rem;
   font-weight: 600;
   color: #fff;
@@ -626,6 +626,7 @@ body.panel-chat-collapsed .panel-chat.panel {
 
 .alerts-banner--scrolling .alerts-banner__track {
   animation: alerts-banner-scroll var(--alerts-scroll-duration, 18s) linear infinite;
+  will-change: transform;
 }
 
 @keyframes alerts-banner-scroll {
@@ -633,7 +634,7 @@ body.panel-chat-collapsed .panel-chat.panel {
     transform: translateX(0);
   }
   to {
-    transform: translateX(calc(-50% - 1.5rem));
+    transform: translateX(var(--alerts-scroll-offset, -50%));
   }
 }
 

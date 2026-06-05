@@ -12,6 +12,7 @@ const {
   updateItem,
   deleteItem,
   reorderItems,
+  shufflePlaylist,
   importPlaylist,
   exportPlaylist,
 } = require('../services/playlist');
@@ -134,6 +135,17 @@ router.put('/:id/items/reorder', async (req, res) => {
   try {
     const items = await reorderItems(req.user.id, req.params.id, req.body?.order);
     res.json({ ok: true, items });
+  } catch (err) {
+    handleError(res, err);
+  }
+});
+
+router.post('/:id/shuffle', async (req, res) => {
+  if (denyPlaylist(req, res)) return;
+  try {
+    const items = await shufflePlaylist(req.user.id, req.params.id);
+    const data = await getPlaylistWithItems(req.user.id, req.params.id);
+    res.json({ ok: true, items, playlist: data.playlist });
   } catch (err) {
     handleError(res, err);
   }

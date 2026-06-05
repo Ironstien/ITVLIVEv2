@@ -335,6 +335,35 @@ async function deleteItem(userId, playlistId, itemId) {
  * @param {import('mongoose').Types.ObjectId|string} playlistId
  * @param {string[]} itemIds
  */
+function shuffleIds(ids) {
+  const shuffled = [...ids];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
+ * @param {import('mongoose').Types.ObjectId|string} userId
+ * @param {import('mongoose').Types.ObjectId|string} playlistId
+ */
+async function shufflePlaylist(userId, playlistId) {
+  await assertPlaylistOwner(userId, playlistId);
+  const items = await PlaylistItem.find({ playlistId }).sort({ order: 1 });
+  if (items.length === 0) {
+    const err = new Error('Playlist is empty');
+    err.status = 400;
+    throw err;
+  }
+  if (items.length === 1) {
+    return items.map(serializeItem);
+  }
+
+  const ids = shuffleIds(items.map((item) => String(item._id)));
+  return reorderItems(userId, playlistId, ids);
+}
+
 async function reorderItems(userId, playlistId, itemIds) {
   await assertPlaylistOwner(userId, playlistId);
 
@@ -478,6 +507,7 @@ module.exports = {
   updateItem,
   deleteItem,
   reorderItems,
+  shufflePlaylist,
   movePlayedItemToBottom,
   importPlaylist,
   exportPlaylist,

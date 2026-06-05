@@ -136,31 +136,47 @@ const ITVRoom = (() => {
     }
   }
 
+  function buildAlertsBannerTrack(trackEl, bodyEl, message) {
+    const safeMessage = escapeHtml(message);
+    trackEl.innerHTML = `<span class="alerts-banner__text">${safeMessage}</span>`;
+    const segmentWidth = trackEl.firstElementChild?.offsetWidth || 0;
+    if (!segmentWidth) return;
+
+    const containerWidth = bodyEl?.offsetWidth || segmentWidth;
+    const copiesPerHalf = Math.max(1, Math.ceil(containerWidth / segmentWidth) + 1);
+    const totalCopies = copiesPerHalf * 2;
+
+    trackEl.innerHTML = Array.from({ length: totalCopies }, (_, index) => {
+      const hidden = index > 0 ? ' aria-hidden="true"' : '';
+      return `<span class="alerts-banner__text"${hidden}>${safeMessage}</span>`;
+    }).join('');
+
+    const spans = [...trackEl.querySelectorAll('.alerts-banner__text')];
+    const halfWidth = spans
+      .slice(0, copiesPerHalf)
+      .reduce((sum, span) => sum + span.offsetWidth, 0);
+    const duration = Math.max(12, halfWidth / 35);
+    trackEl.style.setProperty('--alerts-scroll-offset', `-${halfWidth}px`);
+    trackEl.style.setProperty('--alerts-scroll-duration', `${duration}s`);
+  }
+
   function updateRoomBanner(banner) {
     const bannerEl = $('alerts-banner');
+    const bodyEl = bannerEl?.querySelector('.alerts-banner__body');
     const trackEl = bannerEl?.querySelector('.alerts-banner__track');
     if (!trackEl) return;
 
     const message = String(banner?.message || '').trim();
     if (message) {
-      const safeMessage = escapeHtml(message);
-      trackEl.innerHTML = `
-        <span class="alerts-banner__text">${safeMessage}</span>
-        <span class="alerts-banner__text" aria-hidden="true">${safeMessage}</span>
-      `;
+      buildAlertsBannerTrack(trackEl, bodyEl, message);
       bannerEl.classList.add('alerts-banner--active', 'alerts-banner--scrolling');
       bannerEl.setAttribute('aria-live', 'polite');
-      requestAnimationFrame(() => {
-        const firstText = trackEl.querySelector('.alerts-banner__text');
-        const width = firstText?.offsetWidth || 0;
-        const duration = Math.max(12, width / 35);
-        trackEl.style.setProperty('--alerts-scroll-duration', `${duration}s`);
-      });
       return;
     }
 
     trackEl.innerHTML = '<span class="alerts-banner__text">Moving Alerts Banner</span>';
     trackEl.style.removeProperty('--alerts-scroll-duration');
+    trackEl.style.removeProperty('--alerts-scroll-offset');
     bannerEl.classList.remove('alerts-banner--active', 'alerts-banner--scrolling');
     bannerEl.removeAttribute('aria-live');
   }
@@ -311,7 +327,9 @@ const ITVRoom = (() => {
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        if (roomState) renderVinylPit(roomState);
+        if (!roomState) return;
+        renderVinylPit(roomState);
+        updateRoomBanner(roomState.roomBanner);
       }, 100);
     });
   }
