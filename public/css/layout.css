@@ -127,10 +127,11 @@ a:hover {
 }
 
 .site-brand-name {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: var(--brand-letter-spacing);
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 .site-brand-version {
@@ -1250,6 +1251,13 @@ body.vinyl-pit-collapsed .vinyl-pit__strip {
 @media (max-width: 768px) {
   .site-nav__menu-toggle {
     display: inline-flex;
+  }
+
+  .site-brand-name {
+    font-size: 0.62rem;
+    max-width: min(42vw, 11rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .site-nav__drawer .nav-links {
