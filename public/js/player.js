@@ -249,6 +249,12 @@ const ITVPlayer = (() => {
     return true;
   }
 
+  function notifyPlaybackPlaying(playing) {
+    document.dispatchEvent(
+      new CustomEvent('itv:playback-playing', { detail: { playing: Boolean(playing) } })
+    );
+  }
+
   function applyPayload(payload) {
     if (!payload) return;
 
@@ -266,6 +272,7 @@ const ITVPlayer = (() => {
       hideUnblockOverlay();
       clearUnblockTimer();
       clearVolumeReinforce();
+      notifyPlaybackPlaying(false);
       if (playerReady && ytPlayer?.pauseVideo) ytPlayer.pauseVideo();
       return;
     }
@@ -349,6 +356,9 @@ const ITVPlayer = (() => {
         },
         onStateChange(event) {
           const state = event.data;
+          const playing =
+            state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING;
+          notifyPlaybackPlaying(playing && Boolean(lastSyncPayload?.videoId));
           if (
             state === YT.PlayerState.PLAYING ||
             state === YT.PlayerState.BUFFERING ||

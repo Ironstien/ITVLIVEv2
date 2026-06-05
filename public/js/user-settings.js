@@ -146,9 +146,14 @@ const ITVUserSettings = (() => {
           ? escapeHtml(user.staffRole)
           : '';
 
+    let customSaying = user.customSaying || '';
+    if (customSaying && user.email && customSaying.toLowerCase() === String(user.email).toLowerCase()) {
+      customSaying = '';
+    }
+
     draft = {
       avatarUrl: user.avatarUrl || '',
-      customSaying: user.customSaying || '',
+      customSaying,
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
@@ -172,11 +177,23 @@ const ITVUserSettings = (() => {
         </div>
         <div class="auth-field">
           <label for="settings-avatar-url">Avatar image URL</label>
-          <input id="settings-avatar-url" type="url" inputmode="url" placeholder="https://…" value="${escapeHtml(draft.avatarUrl)}" autocomplete="off" />
+          <input id="settings-avatar-url" type="url" inputmode="url" placeholder="https://…" value="${escapeHtml(draft.avatarUrl)}" autocomplete="off" data-lpignore="true" readonly />
         </div>
         <div class="auth-field">
           <label for="settings-custom-saying">Quote</label>
-          <input id="settings-custom-saying" type="text" maxlength="200" value="${escapeHtml(draft.customSaying)}" placeholder="Optional tagline shown on your profile" />
+          <input
+            id="settings-custom-saying"
+            type="text"
+            name="itv-profile-quote"
+            maxlength="200"
+            value="${escapeHtml(draft.customSaying)}"
+            placeholder="Add quote here"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            data-lpignore="true"
+            readonly
+          />
         </div>
       `
       )}
@@ -256,6 +273,10 @@ const ITVUserSettings = (() => {
     `;
 
     updateAvatarPreviews(bodyEl);
+
+    bodyEl.querySelectorAll('#settings-custom-saying, #settings-avatar-url').forEach((input) => {
+      input.addEventListener('focus', () => input.removeAttribute('readonly'), { once: true });
+    });
 
     bodyEl.querySelector('#settings-avatar-url')?.addEventListener('input', () => updateAvatarPreviews(bodyEl));
     bodyEl.querySelector('#settings-save')?.addEventListener('click', () => saveLoggedIn(user));

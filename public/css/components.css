@@ -2072,6 +2072,14 @@
   animation: vinyl-spin 14s linear infinite;
 }
 
+.vinyl-record--spinning.vinyl-record--spin-paused {
+  animation-play-state: paused;
+}
+
+.current-dj--avatar .vinyl-record--spinning {
+  animation: vinyl-spin 14s linear infinite;
+}
+
 @keyframes vinyl-spin {
   from {
     transform: rotate(0deg);
@@ -2212,9 +2220,9 @@
 }
 
 @media (max-width: 768px) {
-  .vinyl-record--spinning,
-  .vinyl-disc,
-  .vinyl-record {
+  .vinyl-pit .vinyl-record--spinning,
+  .vinyl-pit .vinyl-disc,
+  .vinyl-pit .vinyl-record {
     animation: none !important;
   }
 

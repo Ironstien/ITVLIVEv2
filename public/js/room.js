@@ -19,15 +19,23 @@ const ITVRoom = (() => {
       .replace(/"/g, '&quot;');
   }
 
-  function buildVinylRecord(u) {
+  function buildVinylRecord(u, { spinning = false, onAir = false } = {}) {
     const labelContent = u.avatarUrl
       ? `<img class="vinyl-record__avatar" src="${escapeHtml(u.avatarUrl)}" alt="" loading="lazy" />`
       : `<span class="vinyl-record__initial" aria-hidden="true">${escapeHtml((u.displayName || '?').charAt(0).toUpperCase())}</span>`;
+    const spinClass = spinning ? ' vinyl-record--spinning' : '';
+    const onAirClass = onAir || spinning ? ' vinyl-record--on-air' : '';
     return `
-      <div class="vinyl-record" aria-label="${escapeHtml(u.displayName)}">
+      <div class="vinyl-record${spinClass}${onAirClass}" aria-label="${escapeHtml(u.displayName)}">
         <div class="vinyl-record__label">${labelContent}</div>
       </div>
     `;
+  }
+
+  function syncCurrentDjSpin(playing) {
+    const record = $('current-dj-avatar')?.querySelector('.vinyl-record--spinning');
+    if (!record) return;
+    record.classList.toggle('vinyl-record--spin-paused', !playing);
   }
 
   function buildVinylTooltip(u) {
@@ -114,7 +122,8 @@ const ITVRoom = (() => {
     }
 
     if (dj) {
-      avatarEl.innerHTML = buildVinylRecord(dj);
+      avatarEl.innerHTML = buildVinylRecord(dj, { spinning: true, onAir: true });
+      syncCurrentDjSpin(true);
       const rankLine =
         typeof ITVRank !== 'undefined'
           ? ITVRank.formatLevelRankLine(dj.level ?? 1, { levelPrefix: 'Level ' })
@@ -351,6 +360,14 @@ const ITVRoom = (() => {
     });
   }
 
+  function bindPlaybackSpinListener() {
+    if (typeof window === 'undefined' || window.__itvPlaybackSpinBound) return;
+    window.__itvPlaybackSpinBound = true;
+    document.addEventListener('itv:playback-playing', (e) => {
+      syncCurrentDjSpin(Boolean(e.detail?.playing));
+    });
+  }
+
   function init(sock, socketId, options = {}) {
     if (socket && onRoomState) {
       socket.off('room:state', onRoomState);
@@ -371,6 +388,7 @@ const ITVRoom = (() => {
     };
     socket.on('room:state', onRoomState);
     bindVinylPitLayoutListener();
+    bindPlaybackSpinListener();
   }
 
   function getState() {
