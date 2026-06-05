@@ -138,15 +138,31 @@ const ITVRoom = (() => {
 
   function updateRoomBanner(banner) {
     const bannerEl = $('alerts-banner');
-    const textEl = bannerEl?.querySelector('.alerts-banner__text');
-    if (!textEl) return;
-    if (banner?.message) {
-      textEl.textContent = banner.message;
-      bannerEl?.classList.add('alerts-banner--active');
-    } else {
-      textEl.textContent = 'Moving Alerts Banner';
-      bannerEl?.classList.remove('alerts-banner--active');
+    const trackEl = bannerEl?.querySelector('.alerts-banner__track');
+    if (!trackEl) return;
+
+    const message = String(banner?.message || '').trim();
+    if (message) {
+      const safeMessage = escapeHtml(message);
+      trackEl.innerHTML = `
+        <span class="alerts-banner__text">${safeMessage}</span>
+        <span class="alerts-banner__text" aria-hidden="true">${safeMessage}</span>
+      `;
+      bannerEl.classList.add('alerts-banner--active', 'alerts-banner--scrolling');
+      bannerEl.setAttribute('aria-live', 'polite');
+      requestAnimationFrame(() => {
+        const firstText = trackEl.querySelector('.alerts-banner__text');
+        const width = firstText?.offsetWidth || 0;
+        const duration = Math.max(12, width / 35);
+        trackEl.style.setProperty('--alerts-scroll-duration', `${duration}s`);
+      });
+      return;
     }
+
+    trackEl.innerHTML = '<span class="alerts-banner__text">Moving Alerts Banner</span>';
+    trackEl.style.removeProperty('--alerts-scroll-duration');
+    bannerEl.classList.remove('alerts-banner--active', 'alerts-banner--scrolling');
+    bannerEl.removeAttribute('aria-live');
   }
 
   function renderChat(chat) {

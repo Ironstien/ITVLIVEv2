@@ -6,15 +6,16 @@ const SETTINGS_KEY = 'global';
 
 /** @type {Set<string>} */
 let blockedVideoIds = new Set();
-/** @type {{ maintenanceMode: boolean, maintenanceMessage: string }} */
+/** @type {{ maintenanceMode: boolean, maintenanceMessage: string, alertsBannerMessage: string }} */
 let settings = {
   maintenanceMode: false,
   maintenanceMessage: '',
+  alertsBannerMessage: '',
 };
 
 async function loadPlatformState() {
   blockedVideoIds = new Set();
-  settings = { maintenanceMode: false, maintenanceMessage: '' };
+  settings = { maintenanceMode: false, maintenanceMessage: '', alertsBannerMessage: '' };
 
   if (!isDbConnected()) return;
 
@@ -30,6 +31,7 @@ async function loadPlatformState() {
   settings = {
     maintenanceMode: Boolean(doc.maintenanceMode),
     maintenanceMessage: String(doc.maintenanceMessage || '').trim(),
+    alertsBannerMessage: String(doc.alertsBannerMessage || '').trim(),
   };
 }
 
@@ -42,14 +44,19 @@ function getPlatformSettings() {
   return {
     maintenanceMode: settings.maintenanceMode,
     maintenanceMessage: settings.maintenanceMessage,
+    alertsBannerMessage: settings.alertsBannerMessage,
     blockedVideoCount: blockedVideoIds.size,
   };
 }
 
 function getRoomBanner() {
-  if (!settings.maintenanceMode) return null;
-  const message = settings.maintenanceMessage || 'The stage is in maintenance mode.';
-  return { type: 'maintenance', message };
+  if (settings.maintenanceMode) {
+    const message = settings.maintenanceMessage || 'The stage is in maintenance mode.';
+    return { type: 'maintenance', message };
+  }
+  const message = settings.alertsBannerMessage;
+  if (!message) return null;
+  return { type: 'alerts', message };
 }
 
 async function listBlockedVideos(limit = 50) {
@@ -122,6 +129,9 @@ async function updatePlatformSettings(updates = {}) {
   if (updates.maintenanceMessage !== undefined) {
     patch.maintenanceMessage = String(updates.maintenanceMessage || '').trim().slice(0, 500);
   }
+  if (updates.alertsBannerMessage !== undefined) {
+    patch.alertsBannerMessage = String(updates.alertsBannerMessage || '').trim().slice(0, 500);
+  }
 
   const doc = await PlatformSettings.findOneAndUpdate(
     { key: SETTINGS_KEY },
@@ -132,6 +142,7 @@ async function updatePlatformSettings(updates = {}) {
   settings = {
     maintenanceMode: Boolean(doc.maintenanceMode),
     maintenanceMessage: String(doc.maintenanceMessage || '').trim(),
+    alertsBannerMessage: String(doc.alertsBannerMessage || '').trim(),
   };
 
   return { ok: true, settings: getPlatformSettings() };

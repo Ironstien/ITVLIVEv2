@@ -145,6 +145,23 @@ const ITVAdminPanel = (() => {
       }
     });
 
+    bodyEl.querySelector('#panel-alerts-banner-save')?.addEventListener('click', async (btn) => {
+      const messageInput = bodyEl.querySelector('#panel-alerts-banner-message');
+      btn.currentTarget.disabled = true;
+      try {
+        await updatePlatform({
+          alertsBannerMessage: messageInput?.value?.trim() || '',
+        });
+        toast('Moving Alerts Banner saved');
+        await refreshAuditLog();
+        render();
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        btn.currentTarget.disabled = false;
+      }
+    });
+
     bodyEl.querySelector('#panel-block-video-btn')?.addEventListener('click', async (btn) => {
       const input = bodyEl.querySelector('#panel-block-video-input');
       const reasonInput = bodyEl.querySelector('#panel-block-video-reason');
@@ -496,7 +513,7 @@ const ITVAdminPanel = (() => {
           </label>
         </div>
         <div class="admin-tools__row">
-          <label class="admin-tools__label" for="panel-maintenance-message">Banner message</label>
+          <label class="admin-tools__label" for="panel-maintenance-message">Maintenance message</label>
           <input
             type="text"
             id="panel-maintenance-message"
@@ -507,6 +524,26 @@ const ITVAdminPanel = (() => {
           />
         </div>
         <button type="button" class="modal-action-btn auth-submit" id="panel-maintenance-save">Save platform settings</button>
+      </section>
+
+      <section class="admin-tools__section">
+        <h3 class="admin-tools__heading">Moving Alerts Banner</h3>
+        <p class="admin-tools__hint muted">
+          Text scrolls across the strip above the stage for all viewers. Clear the field to hide the banner.
+          Maintenance mode overrides this message.
+        </p>
+        <div class="admin-tools__row">
+          <label class="admin-tools__label" for="panel-alerts-banner-message">Banner text</label>
+          <input
+            type="text"
+            id="panel-alerts-banner-message"
+            class="admin-tools__input"
+            maxlength="500"
+            placeholder="e.g. Welcome to ITVLive — next event Friday 8pm GMT"
+            value="${escapeHtml(settings.alertsBannerMessage || '')}"
+          />
+        </div>
+        <button type="button" class="modal-action-btn auth-submit" id="panel-alerts-banner-save">Save banner text</button>
       </section>
 
       <section class="admin-tools__section">

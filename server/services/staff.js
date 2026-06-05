@@ -405,6 +405,7 @@ async function updatePlatform(actor, updates) {
       previousMaintenanceMode: previous.maintenanceMode,
       maintenanceMode: result.settings.maintenanceMode,
       maintenanceMessage: result.settings.maintenanceMessage,
+      alertsBannerMessage: result.settings.alertsBannerMessage,
     },
   });
 
