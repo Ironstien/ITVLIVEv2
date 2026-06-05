@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { can } = require('../config/permissions');
+const { room } = require('../sockets');
 const {
   listPlaylists,
   createPlaylist,
@@ -92,7 +93,12 @@ router.post('/:id/activate', async (req, res) => {
   if (denyPlaylist(req, res)) return;
   try {
     const playlist = await setActivePlaylist(req.user.id, req.params.id);
-    res.json({ ok: true, playlist });
+    const queueSync = await room.syncQueueEntryActivePlaylist(req.user.id);
+    const io = req.app.get('io');
+    if (io && queueSync.updated) {
+      io.emit('room:state', room.getRoomState());
+    }
+    res.json({ ok: true, playlist, queueSynced: Boolean(queueSync.updated) });
   } catch (err) {
     handleError(res, err);
   }

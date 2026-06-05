@@ -314,6 +314,41 @@ class Room {
     }
   }
 
+  /**
+   * Reload a queue entry from the user's current active playlist (e.g. after they switch playlists).
+   * @param {object} entry
+   */
+  async _syncQueueEntryToActivePlaylist(entry) {
+    if (!entry?.userId) return false;
+    if (!isDbConnected()) {
+      return Boolean(entry.playlistItems?.length);
+    }
+
+    const active = await getActivePlaylist(entry.userId);
+    if (!active) return false;
+
+    const { items } = await getPlaylistWithItems(entry.userId, active.id);
+    if (!items.length) return false;
+
+    entry.playlistId = active.id;
+    entry.playlistItems = items;
+    entry.trackIndex = 0;
+    return true;
+  }
+
+  /** @param {string} userId */
+  async syncQueueEntryActivePlaylist(userId) {
+    const entry = this._findQueueEntryByUserId(userId);
+    if (!entry) return { ok: true, updated: false };
+
+    const updated = await this._syncQueueEntryToActivePlaylist(entry);
+    if (!updated) {
+      return { ok: false, error: 'Active playlist is empty or unavailable' };
+    }
+
+    return { ok: true, updated: true, playlistId: entry.playlistId };
+  }
+
   _isRealDjPlaying() {
     return Boolean(this.nowPlaying?.userId && !this._isTestDjUserId(this.nowPlaying.userId));
   }
@@ -1156,6 +1191,14 @@ class Room {
         this.djQueue.shift();
         this._syncUserInQueueFlags(entry.userId, false);
         console.log('[room] skipped offline DJ at queue head', entry.displayName);
+        continue;
+      }
+
+      const synced = await this._syncQueueEntryToActivePlaylist(entry);
+      if (!synced) {
+        this.djQueue.shift();
+        this._syncUserInQueueFlags(entry.userId, false);
+        console.log('[room] removed queue entry with no active playlist tracks', entry.displayName);
         continue;
       }
 
