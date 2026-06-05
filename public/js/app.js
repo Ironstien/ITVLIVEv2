@@ -452,6 +452,9 @@
         if (res.authenticated && accountUser) {
           setNavAccount(accountUser, 'connected');
         } else if (navUser) {
+          if (typeof ITVAppPrefs !== 'undefined' && res.displayName) {
+            ITVAppPrefs.setMyUsername(res.displayName);
+          }
           updateNavLabel(formatGuestNavHtml(res.displayName, 'connected'), true);
         }
         ITVRoom.init(socket, res.socketId, { onUpdate: updateQueueControls });
@@ -605,6 +608,9 @@
       updateSiteVersion(health?.version);
       await setAccountUser(user);
       if (!user && navUser && health.ok) {
+        if (typeof ITVAppPrefs !== 'undefined') {
+          ITVAppPrefs.setMyUsername(getGuestName());
+        }
         updateNavLabel(formatGuestNavHtml(getGuestName()), true);
       }
       startSocket();

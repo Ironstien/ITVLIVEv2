@@ -690,10 +690,69 @@
 .chat-form {
   display: flex;
   gap: 0.35rem;
+  align-items: stretch;
+}
+
+.chat-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-mention-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 0.25rem);
+  z-index: 20;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 10rem;
+  overflow-y: auto;
+  background: var(--void-panel);
+  border: 1px solid var(--purple-mid);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-glow);
+}
+
+.chat-mention-list.hidden {
+  display: none;
+}
+
+.chat-mention-list__item {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: none;
+  background: transparent;
+  color: var(--grey-text);
+  font: inherit;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-mention-list__item:hover,
+.chat-mention-list__item--active {
+  background: rgba(90, 24, 154, 0.22);
+  color: var(--purple-bright);
+}
+
+.chat-mention {
+  color: var(--purple-bright);
+  font-weight: 600;
+}
+
+.user-profile__mention-btn {
+  margin-top: 0.45rem;
+  align-self: flex-start;
 }
 
 .chat-form input {
   flex: 1;
+  width: 100%;
+  box-sizing: border-box;
   background: var(--void-deep);
   border: 1px solid var(--void-border);
   border-radius: var(--radius);

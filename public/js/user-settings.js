@@ -208,7 +208,7 @@ const ITVUserSettings = (() => {
           ${renderToggle('settings-chat-timestamps', 'Show chat timestamps', prefs.chatTimestamps)}
           ${renderToggle('settings-chat-compact', 'Compact chat', prefs.chatCompact, 'Less vertical spacing between messages')}
           ${renderToggle('settings-chat-hide-system', 'Hide system messages', prefs.chatHideSystem, 'Hides badge-earned announcements in chat')}
-          ${renderToggle('settings-chat-mention', 'Highlight mentions', prefs.chatMentionHighlight, 'When your username appears in a message')}
+          ${renderToggle('settings-chat-mention', 'Highlight @mentions', prefs.chatMentionHighlight, 'When a message @mentions your username')}
           ${renderToggle('settings-badge-toasts', 'Badge earned popup', prefs.badgeToasts, 'Show celebration modal when you earn a badge')}
         </div>
       `
@@ -315,6 +315,7 @@ const ITVUserSettings = (() => {
       return;
     }
     setGuestName(name);
+    if (typeof ITVAppPrefs !== 'undefined') ITVAppPrefs.setMyUsername(name);
     if (ctx?.reconnectSocket) await ctx.reconnectSocket();
     ctx?.toast?.('Settings saved');
     ITVModal.close(MODAL_ID);

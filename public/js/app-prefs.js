@@ -93,9 +93,11 @@ const ITVAppPrefs = (() => {
 
   function messageMentionsMe(text) {
     if (!myUsername || !text) return false;
-    const hay = String(text);
+    if (typeof ITVChatMentions !== 'undefined') {
+      return ITVChatMentions.messageMentionsUser(text, myUsername);
+    }
     const user = myUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`@${user}\\b`, 'i').test(hay) || new RegExp(`\\b${user}\\b`, 'i').test(hay);
+    return new RegExp(`@${user}(?![a-zA-Z0-9_-])`, 'i').test(String(text));
   }
 
   function init() {

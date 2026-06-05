@@ -39,10 +39,22 @@ const ITVUserProfile = (() => {
             <p class="user-profile__name">${name}</p>
             <p class="user-profile__rank muted">${rankLine}</p>
             <p class="user-profile__note muted">Guest account — no badges or saved profile.</p>
+            <button type="button" class="btn-ghost btn-sm user-profile__mention-btn" data-mention-name="${escapeHtml(snapshot.displayName || '')}">@Mention</button>
           </div>
         </div>
       </div>
     `;
+    bindMentionButton();
+  }
+
+  function bindMentionButton() {
+    bodyEl?.querySelector('.user-profile__mention-btn')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      const name = btn.dataset.mentionName || '';
+      if (typeof ITVChatMentions !== 'undefined') {
+        ITVChatMentions.insertMention(name);
+      }
+    });
   }
 
   async function renderProfile(profile) {
@@ -86,6 +98,7 @@ const ITVUserProfile = (() => {
             <p class="user-profile__name">${escapeHtml(profile.username)}</p>
             <p class="user-profile__rank">${rankHtml}${staffHtml ? ` · ${staffHtml}` : ''}</p>
             ${saying}
+            <button type="button" class="btn-ghost btn-sm user-profile__mention-btn" data-mention-name="${escapeHtml(profile.username || '')}">@Mention</button>
           </div>
         </div>
         <section class="user-profile__section">
@@ -108,6 +121,7 @@ const ITVUserProfile = (() => {
     if (typeof ITVBadges !== 'undefined' && ITVBadges.bindBadgePreviews) {
       ITVBadges.bindBadgePreviews(bodyEl);
     }
+    bindMentionButton();
   }
 
   async function openForUserId(userId) {

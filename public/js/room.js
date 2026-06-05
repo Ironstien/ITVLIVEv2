@@ -216,8 +216,12 @@ const ITVRoom = (() => {
 
       div.className = 'chat-msg';
       if (m.id != null) div.dataset.messageId = String(m.id);
-      if (prefs.chatMentionHighlight && myUsername && ITVAppPrefs.messageMentionsMe(m.text)) {
-        div.classList.add('chat-msg--mentioned');
+      if (prefs.chatMentionHighlight && myUsername) {
+        const mentionsMe =
+          typeof ITVChatMentions !== 'undefined'
+            ? ITVChatMentions.messageMentionsUser(m.text, myUsername)
+            : ITVAppPrefs.messageMentionsMe(m.text);
+        if (mentionsMe) div.classList.add('chat-msg--mentioned');
       }
 
       const av = m.avatarUrl
@@ -241,7 +245,11 @@ const ITVRoom = (() => {
               new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             )}</time>`
           : '';
-      div.innerHTML = `${av}<span>${timeHtml}${nameHtml} ${escapeHtml(m.text)}</span>`;
+      const bodyHtml =
+        typeof ITVChatMentions !== 'undefined'
+          ? ITVChatMentions.formatMessageText(m.text)
+          : escapeHtml(m.text);
+      div.innerHTML = `${av}<span>${timeHtml}${nameHtml} ${bodyHtml}</span>`;
       chatEl.appendChild(div);
     });
     chatEl.scrollTop = chatEl.scrollHeight;
