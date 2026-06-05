@@ -127,10 +127,10 @@ a:hover {
 }
 
 .site-brand-name {
-  font-size: 0.72rem;
+  font-size: 0.86rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  line-height: 1.15;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
@@ -1254,7 +1254,7 @@ body.vinyl-pit-collapsed .vinyl-pit__strip {
   }
 
   .site-brand-name {
-    font-size: 0.62rem;
+    font-size: 0.72rem;
     max-width: min(42vw, 11rem);
     overflow: hidden;
     text-overflow: ellipsis;
