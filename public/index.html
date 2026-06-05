@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/css/variables.css" />
     <link rel="stylesheet" href="/css/layout-config.css?v=3" />
     <link rel="stylesheet" href="/css/layout.css?v=3" />
-    <link rel="stylesheet" href="/css/components.css?v=7" />
+    <link rel="stylesheet" href="/css/components.css?v=8" />
   </head>
   <body>
     <header class="site-nav">
@@ -396,6 +396,16 @@
       </div>
     </div>
 
+    <div class="modal hidden" data-modal-id="user-settings" role="dialog" aria-labelledby="modal-user-settings-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide modal-card--user-settings">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-user-settings-title">Settings</h2>
+        <div class="modal-body" id="modal-user-settings-body">
+          <p class="modal-card__lead muted">Loading…</p>
+        </div>
+      </div>
+    </div>
+
     <div class="modal hidden" data-modal-id="user-profile" role="dialog" aria-labelledby="modal-user-profile-title" aria-hidden="true">
       <div class="modal-card modal-card--wide">
         <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
@@ -626,17 +636,19 @@
     <script src="/js/nav-progress.js?v=1"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="/js/rank-colors.js?v=3"></script>
-    <script src="/js/badges.js?v=4"></script>
+    <script src="/js/badges.js?v=5"></script>
+    <script src="/js/app-prefs.js?v=1"></script>
+    <script src="/js/user-settings.js?v=1"></script>
     <script src="/js/user-profile.js?v=2"></script>
     <script src="/js/help.js?v=1"></script>
     <script src="/js/staff-help.js?v=1"></script>
-    <script src="/js/room.js?v=18"></script>
+    <script src="/js/room.js?v=19"></script>
     <script src="/js/vote.js?v=5"></script>
     <script src="/js/song-data.js?v=1"></script>
     <script src="/js/my-data.js?v=5"></script>
     <script src="/js/staff-audit-ui.js?v=2"></script>
     <script src="/js/mod-tools.js?v=2"></script>
     <script src="/js/admin-panel.js?v=4"></script>
-    <script src="/js/app.js?v=25"></script>
+    <script src="/js/app.js?v=26"></script>
   </body>
 </html>

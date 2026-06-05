@@ -6,6 +6,8 @@ const {
   registerUser,
   loginUser,
   updateProfile,
+  changePassword,
+  deactivateAccount,
 } = require('../services/auth');
 const { getUserFullData } = require('../services/userData');
 
@@ -87,6 +89,35 @@ router.patch('/profile', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[auth] profile update failed:', err.message);
     res.status(500).json({ error: 'Profile update failed' });
+  }
+});
+
+router.patch('/password', requireAuth, async (req, res) => {
+  try {
+    const result = await changePassword(req.user.id, req.body || {});
+    if (result.error) {
+      const status = result.error === 'Current password is incorrect' ? 401 : 400;
+      res.status(status).json({ error: result.error });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[auth] password change failed:', err.message);
+    res.status(500).json({ error: 'Password change failed' });
+  }
+});
+
+router.delete('/account', requireAuth, async (req, res) => {
+  try {
+    const result = await deactivateAccount(req.user.id);
+    if (result.error) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[auth] account deactivation failed:', err.message);
+    res.status(500).json({ error: 'Account deactivation failed' });
   }
 });
 

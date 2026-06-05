@@ -180,6 +180,32 @@ a:hover {
   color: var(--grey-muted);
 }
 
+.nav-user-name-btn {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--purple-bright);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(180, 120, 255, 0.45);
+}
+
+.nav-user-name-btn:hover,
+.nav-user-name-btn:focus-visible {
+  color: var(--grey-text);
+  text-decoration-color: var(--purple-bright);
+}
+
+.nav-user-name-btn:focus-visible {
+  outline: 1px solid var(--purple-bright);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .nav-actions {
   display: flex;
   align-items: center;

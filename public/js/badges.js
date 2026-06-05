@@ -308,6 +308,13 @@ const ITVBadges = (() => {
     const ids = Array.isArray(newBadgeIds) ? newBadgeIds : [];
     if (!ids.length) return;
 
+    if (typeof ITVAppPrefs !== 'undefined' && !ITVAppPrefs.shouldShowBadgeToasts()) {
+      ids.forEach((id) => {
+        if (id) celebratedBadgeIds.add(id);
+      });
+      return;
+    }
+
     const fresh = ids.filter((id) => id && !celebratedBadgeIds.has(id));
     if (!fresh.length) return;
     fresh.forEach((id) => celebratedBadgeIds.add(id));

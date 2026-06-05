@@ -77,7 +77,15 @@
         : user.staffRole
           ? ` · ${esc(user.staffRole)}`
           : '';
-    return `${esc(user.username)} · Lv.${level} · ${rankPart} · ${xp} XP${staffHtml}${suffixText}`;
+    const usernameBtn = `<button type="button" class="nav-user-name-btn" id="nav-user-settings-btn">${esc(user.username)}</button>`;
+    return `${usernameBtn} · Lv.${level} · ${rankPart} · ${xp} XP${staffHtml}${suffixText}`;
+  }
+
+  function formatGuestNavHtml(name, suffix = '') {
+    const esc = typeof ITVRank !== 'undefined' ? ITVRank.escapeHtml.bind(ITVRank) : (s) => String(s ?? '');
+    const suffixText = suffix ? ` · ${esc(suffix)}` : ' · guest';
+    const usernameBtn = `<button type="button" class="nav-user-name-btn" id="nav-user-settings-btn">${esc(name)}</button>`;
+    return `${usernameBtn}${suffixText}`;
   }
 
   function getRankFallbackName(level) {
@@ -141,19 +149,10 @@
   function updateNavAuthLink() {
     if (!navAuthLink) return;
     if (accountUser) {
-      navAuthLink.textContent = 'Log out';
-      navAuthLink.removeAttribute('data-open-modal');
-      navAuthLink.onclick = async (e) => {
-        e.preventDefault();
-        ITVAuth.logout();
-        accountUser = null;
-        updateNavAuthLink();
-        updateStaffNav();
-        updateQueueButton();
-        updateNavLabel(`${getGuestName()} · guest`);
-        await reconnectSocket();
-      };
+      navAuthLink.classList.add('hidden');
+      navAuthLink.onclick = null;
     } else {
+      navAuthLink.classList.remove('hidden');
       navAuthLink.textContent = 'Log in';
       navAuthLink.setAttribute('data-open-modal', 'login');
       navAuthLink.onclick = (e) => {
@@ -164,6 +163,22 @@
         ITVModal.open('login');
       };
     }
+  }
+
+  async function logoutAccount() {
+    ITVAuth.logout();
+    accountUser = null;
+    if (typeof ITVAppPrefs !== 'undefined') ITVAppPrefs.setMyUsername('');
+    updateNavAuthLink();
+    updateStaffNav();
+    updateQueueButton();
+    updateNavLabel(formatGuestNavHtml(getGuestName()), true);
+    await reconnectSocket();
+  }
+
+  function setGuestNav(name) {
+    if (accountUser) return;
+    updateNavLabel(formatGuestNavHtml(name), true);
   }
 
   function getMyQueueState() {
@@ -276,6 +291,9 @@
     if (typeof ITVVote !== 'undefined') {
       ITVVote.setAccount(user);
     }
+    if (typeof ITVAppPrefs !== 'undefined') {
+      ITVAppPrefs.setMyUsername(user?.username || '');
+    }
     updateNavAuthLink();
     updateStaffNav();
     updateQueueButton();
@@ -285,7 +303,7 @@
     if (user) {
       setNavAccount(user);
     } else {
-      updateNavLabel(`${getGuestName()} · guest`);
+      updateNavLabel(formatGuestNavHtml(getGuestName()), true);
     }
   }
 
@@ -320,6 +338,22 @@
       toast('Logged in — stage still playing');
     },
   });
+
+  if (typeof ITVAppPrefs !== 'undefined') {
+    ITVAppPrefs.init();
+  }
+
+  if (typeof ITVUserSettings !== 'undefined') {
+    ITVUserSettings.init({
+      getAccountUser: () => accountUser,
+      setAccountUser,
+      getGuestName,
+      setGuestNav,
+      reconnectSocket,
+      logout: logoutAccount,
+      toast,
+    });
+  }
 
   if (typeof ITVModTools !== 'undefined') {
     ITVModTools.init({ onToast: toast });
@@ -418,7 +452,7 @@
         if (res.authenticated && accountUser) {
           setNavAccount(accountUser, 'connected');
         } else if (navUser) {
-          updateNavLabel(`${res.displayName} · connected`);
+          updateNavLabel(formatGuestNavHtml(res.displayName, 'connected'), true);
         }
         ITVRoom.init(socket, res.socketId, { onUpdate: updateQueueControls });
         if (res.roomState) {
@@ -571,7 +605,7 @@
       updateSiteVersion(health?.version);
       await setAccountUser(user);
       if (!user && navUser && health.ok) {
-        updateNavLabel(`${getGuestName()} · guest`);
+        updateNavLabel(formatGuestNavHtml(getGuestName()), true);
       }
       startSocket();
       openModalFromQuery();

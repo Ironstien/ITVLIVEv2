@@ -32,6 +32,10 @@ async function requireAuth(req, res, next) {
       res.status(401).json({ error: 'Invalid or expired token' });
       return;
     }
+    if (user.isBanned) {
+      res.status(403).json({ error: 'Account is deactivated' });
+      return;
+    }
     req.user = user;
     next();
   } catch (_err) {

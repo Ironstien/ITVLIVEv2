@@ -189,17 +189,28 @@ const ITVRoom = (() => {
       chatEl.innerHTML = '<p class="muted">Say hello…</p>';
       return;
     }
+
+    const prefs = typeof ITVAppPrefs !== 'undefined' ? ITVAppPrefs.getAll() : {};
+    const myUsername = typeof ITVAppPrefs !== 'undefined' ? ITVAppPrefs.getMyUsername() : '';
+
     chat.forEach((m) => {
+      if (m.kind === 'badge-earned' && prefs.chatHideSystem) return;
+
       const div = document.createElement('div');
       if (m.kind === 'badge-earned') {
-        div.className = 'chat-msg chat-msg--badge-earned';
+        div.className = 'chat-msg chat-msg--badge-earned chat-msg--system';
         if (m.id != null) div.dataset.messageId = String(m.id);
         div.innerHTML = `<span class="chat-badge-earned">${escapeHtml(m.text || '')}</span>`;
         chatEl.appendChild(div);
         return;
       }
+
       div.className = 'chat-msg';
       if (m.id != null) div.dataset.messageId = String(m.id);
+      if (prefs.chatMentionHighlight && myUsername && ITVAppPrefs.messageMentionsMe(m.text)) {
+        div.classList.add('chat-msg--mentioned');
+      }
+
       const av = m.avatarUrl
         ? `<img class="chat-avatar" src="${escapeHtml(m.avatarUrl)}" alt="" loading="lazy" />`
         : '';
@@ -215,7 +226,13 @@ const ITVRoom = (() => {
       const levelAttr = ` data-level="${escapeHtml(m.level ?? 1)}"`;
       const displayAttr = ` data-display-name="${escapeHtml(m.displayName || '')}"`;
       const nameHtml = `<button type="button" class="chat-name-btn"${userIdAttr}${levelAttr}${displayAttr}>${nameInner}</button>`;
-      div.innerHTML = `${av}<span>${nameHtml} ${escapeHtml(m.text)}</span>`;
+      const timeHtml =
+        prefs.chatTimestamps && m.at
+          ? `<time class="chat-msg__time muted" datetime="${new Date(m.at).toISOString()}">${escapeHtml(
+              new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            )}</time>`
+          : '';
+      div.innerHTML = `${av}<span>${timeHtml}${nameHtml} ${escapeHtml(m.text)}</span>`;
       chatEl.appendChild(div);
     });
     chatEl.scrollTop = chatEl.scrollHeight;

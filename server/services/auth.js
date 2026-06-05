@@ -26,6 +26,7 @@ function toPublicUser(doc) {
     stats: u.stats || {},
     activePlaylistId: u.activePlaylistId ? String(u.activePlaylistId) : null,
     createdAt: u.createdAt,
+    updatedAt: u.updatedAt,
     isBanned: Boolean(u.bannedAt),
     banReason: u.banReason || '',
   };
@@ -170,7 +171,13 @@ async function loginUser({ email, password }) {
 
   let user = await User.findOne({ email: normalizedEmail });
   if (!user) return { error: 'Invalid email or password' };
-  if (user.bannedAt) return { error: 'Account is banned' };
+  if (user.bannedAt) {
+    const reason = String(user.banReason || '');
+    if (reason.includes('Self-deactivated')) {
+      return { error: 'Account is deactivated. Contact an admin to restore access.' };
+    }
+    return { error: 'Account is banned' };
+  }
 
   const match = await bcrypt.compare(String(password), user.passwordHash);
   if (!match) return { error: 'Invalid email or password' };
@@ -209,6 +216,46 @@ async function updateProfile(userId, { avatarUrl, customSaying }) {
   return { ok: true, user: toPublicUser(user) };
 }
 
+async function changePassword(userId, { currentPassword, newPassword, confirmPassword }) {
+  requireDb();
+  const user = await User.findById(userId);
+  if (!user) return { error: 'User not found' };
+  if (user.bannedAt) return { error: 'Account is deactivated' };
+
+  const current = String(currentPassword || '');
+  const next = String(newPassword || '');
+  const confirm = String(confirmPassword ?? newPassword ?? '');
+
+  if (!current || !next) {
+    return { error: 'Current and new password are required' };
+  }
+  if (next !== confirm) {
+    return { error: 'New passwords do not match' };
+  }
+  if (next.length < MIN_PASSWORD_LEN) {
+    return { error: `Password must be at least ${MIN_PASSWORD_LEN} characters` };
+  }
+
+  const match = await bcrypt.compare(current, user.passwordHash);
+  if (!match) return { error: 'Current password is incorrect' };
+
+  user.passwordHash = await bcrypt.hash(next, BCRYPT_ROUNDS);
+  await user.save();
+  return { ok: true };
+}
+
+async function deactivateAccount(userId) {
+  requireDb();
+  const user = await User.findById(userId);
+  if (!user) return { error: 'User not found' };
+  if (user.bannedAt) return { error: 'Account is already deactivated' };
+
+  user.bannedAt = new Date();
+  user.banReason = 'Self-deactivated by account owner';
+  await user.save();
+  return { ok: true };
+}
+
 module.exports = {
   toPublicUser,
   toSocketUser,
@@ -219,5 +266,7 @@ module.exports = {
   assertUserNotBanned,
   reconcileUserLevel,
   updateProfile,
+  changePassword,
+  deactivateAccount,
   MIN_PASSWORD_LEN,
 };
