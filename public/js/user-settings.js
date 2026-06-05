@@ -221,15 +221,15 @@ const ITVUserSettings = (() => {
         `
         <div class="auth-field">
           <label for="settings-current-password">Current password</label>
-          <input id="settings-current-password" type="password" autocomplete="current-password" />
+          <input id="settings-current-password" type="password" autocomplete="off" data-lpignore="true" />
         </div>
         <div class="auth-field">
           <label for="settings-new-password">New password</label>
-          <input id="settings-new-password" type="password" autocomplete="new-password" minlength="8" />
+          <input id="settings-new-password" type="password" autocomplete="off" data-lpignore="true" minlength="8" />
         </div>
         <div class="auth-field">
           <label for="settings-confirm-password">Confirm new password</label>
-          <input id="settings-confirm-password" type="password" autocomplete="new-password" minlength="8" />
+          <input id="settings-confirm-password" type="password" autocomplete="off" data-lpignore="true" minlength="8" />
         </div>
         <p class="user-settings__hint muted">Leave password fields blank to keep your current password.</p>
         <div class="user-settings__danger-zone">
@@ -320,8 +320,8 @@ const ITVUserSettings = (() => {
         volume,
       };
 
-      const passwordTouched = currentPassword || newPassword || confirmPassword;
-      if (passwordTouched) {
+      const wantsPasswordChange = Boolean(newPassword || confirmPassword);
+      if (wantsPasswordChange) {
         if (!currentPassword || !newPassword) {
           showError('Enter current and new password to change it');
           return;
