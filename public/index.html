@@ -6,9 +6,9 @@
     <title>INTO THE VOID — Main Stage</title>
     <link rel="icon" href="/img/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/css/variables.css" />
-    <link rel="stylesheet" href="/css/layout-config.css?v=3" />
-    <link rel="stylesheet" href="/css/layout.css?v=5" />
-    <link rel="stylesheet" href="/css/components.css?v=12" />
+    <link rel="stylesheet" href="/css/layout-config.css?v=4" />
+    <link rel="stylesheet" href="/css/layout.css?v=6" />
+    <link rel="stylesheet" href="/css/components.css?v=13" />
   </head>
   <body>
     <header class="site-nav">
@@ -309,38 +309,39 @@
         </div>
       </aside>
 
-      <section class="panel vinyl-pit" id="vinyl-pit">
-        <div class="vinyl-pit__strip" aria-hidden="true">
-          <button type="button" class="vinyl-pit__strip-btn" data-vinyl-pit-expand aria-label="Expand The Vinyl Pit">
+      <section class="panel the-pit" id="the-pit">
+        <div class="the-pit__strip" aria-hidden="true">
+          <button type="button" class="the-pit__strip-btn" data-pit-expand aria-label="Expand The Pit">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
             </svg>
           </button>
-          <span class="vinyl-pit__strip-label">The Vinyl Pit</span>
+          <span class="the-pit__strip-label">The Pit</span>
         </div>
-        <div class="vinyl-pit__main">
-          <div class="panel-header panel-header-with-action vinyl-pit__header">
-            <span>The Vinyl Pit</span>
+        <div class="the-pit__main">
+          <div class="panel-header panel-header-with-action the-pit__header">
+            <span>The Pit</span>
             <button
               type="button"
               class="panel-side__collapse"
-              data-vinyl-pit-collapse
-              aria-label="Collapse The Vinyl Pit"
-              title="Collapse The Vinyl Pit"
+              data-pit-collapse
+              aria-label="Collapse The Pit"
+              title="Collapse The Pit"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
               </svg>
             </button>
           </div>
-          <div class="panel-body vinyl-pit-body">
-            <div class="vinyl-pit-row vinyl-pit-row--queue">
-              <span class="vinyl-pit-row__label">DJ Queue</span>
-              <div class="vinyl-pit-row__discs" id="vinyl-pit-queue"></div>
-            </div>
-            <div class="vinyl-pit-row vinyl-pit-row--listeners">
-              <span class="vinyl-pit-row__label">Listening</span>
-              <div class="vinyl-pit-row__discs" id="vinyl-pit-listeners"></div>
+          <div class="panel-body the-pit-body">
+            <div class="the-pit__backdrop" aria-hidden="true"></div>
+            <div class="the-pit__filmstrip-wrap">
+              <div class="pit-filmstrip" aria-label="Upcoming tracks in playback order">
+                <div class="pit-filmstrip__perfs pit-filmstrip__perfs--top" aria-hidden="true"></div>
+                <div class="pit-filmstrip__frames" id="pit-lineup" role="list"></div>
+                <div class="pit-filmstrip__perfs pit-filmstrip__perfs--bottom" aria-hidden="true"></div>
+              </div>
+              <p class="the-pit__empty muted hidden" id="pit-empty" role="status">Nothing queued — the pit is quiet</p>
             </div>
           </div>
         </div>
@@ -674,7 +675,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/layout.js?v=5"></script>
+    <script src="/js/layout.js?v=6"></script>
     <script src="/js/nav-mobile.js?v=1"></script>
     <script src="/js/modal.js?v=11"></script>
     <script src="/js/auth.js?v=11"></script>
@@ -692,7 +693,7 @@
     <script src="/js/help.js?v=1"></script>
     <script src="/js/bug-report.js?v=1"></script>
     <script src="/js/staff-help.js?v=1"></script>
-    <script src="/js/room.js?v=21"></script>
+    <script src="/js/room.js?v=22"></script>
     <script src="/js/vote.js?v=5"></script>
     <script src="/js/song-data.js?v=1"></script>
     <script src="/js/my-data.js?v=5"></script>

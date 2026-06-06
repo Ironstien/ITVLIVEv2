@@ -34,44 +34,36 @@
   /* Minimum vertical breathing room above/below the player in the centre grid */
   --player-stage-gap-min: 0.65rem;
 
-  /* Fixed height of the open Vinyl Pit strip (centre column) */
-  --vinyl-pit-height-open: 220px;
-  --vinyl-pit-height: var(--vinyl-pit-height-open);
+  /* Fixed height of the open Pit strip (centre column) */
+  --pit-height-open: 200px;
+  --pit-height: var(--pit-height-open);
 
   /* Viewport height at or below which the pit auto-collapses (layout.js) */
-  --vinyl-pit-auto-collapse-max-height: 800px;
+  --pit-auto-collapse-max-height: 800px;
 
-  /* Inner padding at top/bottom of the vinyl pit body */
-  --vinyl-pit-inset: 0.45rem;
+  /* Inner padding at top/bottom of the pit body */
+  --pit-inset: 0.45rem;
 
-  /* Height reserved for each vinyl pit row label (Queue / Listening) */
-  --vinyl-pit-header-height: 1.75rem;
+  /* Height reserved for the pit panel header */
+  --pit-header-height: 1.75rem;
 
-  /* Vertical gap between the two vinyl pit rows */
-  --vinyl-pit-row-gap: 0.35rem;
+  /* 35mm filmstrip geometry */
+  --pit-film-stock: #1a1a1e;
+  --pit-perf-band: 11px;
+  --pit-perf-pitch: 17px;
+  --pit-perf-w: 9px;
+  --pit-perf-h: 6px;
+  --pit-frame-width: 112px;
+  --pit-frame-height: 63px;
+  --pit-frame-gap: 3px;
+  --pit-frame-radius: 5px;
 
-  /* Line height of vinyl pit row labels */
-  --vinyl-pit-label-height: 0.85rem;
-
-  /* Maximum diameter of a vinyl disc in the pit (scales down if pit is tight) */
+  /* Vinyl disc sizing (current DJ flank avatar) */
   --vinyl-disc-max: 66px;
-
-  /* Computed disc size from pit geometry — leave as-is unless pit math changes */
-  --vinyl-disc-size: min(
-    var(--vinyl-disc-max),
-    calc(
-      (
-        var(--vinyl-pit-height) - var(--vinyl-pit-header-height) -
-          (var(--vinyl-pit-inset) * 2) - (var(--vinyl-pit-label-height) * 2) -
-          (var(--vinyl-pit-row-gap) * 2) - 6px
-      ) / 2
-    )
-  );
-
-  /* Ratio of label circle to full disc diameter */
+  --vinyl-disc-size: var(--vinyl-disc-max);
   --vinyl-label-ratio: 0.42;
 
-  /* Gap between the three main stage columns and the vinyl pit row */
+  /* Gap between the three main stage columns and the pit row */
   --stage-gap: 0.5rem;
 
   /* Padding around the outer stage grid (matches column gap by default) */
@@ -92,14 +84,19 @@
     --mobile-panel-expanded-min: min(45vh, 320px);
     --player-stage-gap-min: 0.4rem;
     --alerts-banner-height: 2rem;
-    --vinyl-pit-height-open: 168px;
-    --vinyl-pit-auto-collapse-max-height: 680px;
-    --vinyl-pit-inset: 0.35rem;
-    --vinyl-pit-header-height: 1.5rem;
-    --vinyl-pit-row-gap: 0.25rem;
+    --pit-height-open: 168px;
+    --pit-auto-collapse-max-height: 680px;
+    --pit-inset: 0.35rem;
+    --pit-header-height: 1.5rem;
+    --pit-frame-width: 88px;
+    --pit-frame-height: 50px;
+    --pit-perf-band: 9px;
+    --pit-perf-pitch: 14px;
+    --pit-perf-w: 7px;
+    --pit-perf-h: 5px;
     --vinyl-disc-max: 48px;
     --stage-gap: 0.35rem;
     --stage-padding: 0.35rem;
-    --vinyl-pit-max-discs: 10;
+    --pit-max-tracks: 10;
   }
 }

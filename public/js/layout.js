@@ -1,7 +1,7 @@
 /**
  * ITVLive v2 — responsive stage layout.
  * Desktop: collapsible side panels (48px strip), auto-collapse playlist first,
- * collapsible vinyl pit (48px strip), fluid 16:9 player, DJ flanks on player edges.
+ * collapsible pit (48px strip), fluid 16:9 player, DJ flanks on player edges.
  * Mobile (≤768px): vertical stack, scrollable stage, one panel open at a time.
  */
 (function () {
@@ -9,10 +9,10 @@
   const MOBILE_MQ = window.matchMedia('(max-width: 768px)');
 
   const state = {
-    userCollapsed: { playlist: false, chat: false, vinylPit: false },
-    autoCollapsed: { playlist: false, chat: false, vinylPit: false },
+    userCollapsed: { playlist: false, chat: false, pit: false },
+    autoCollapsed: { playlist: false, chat: false, pit: false },
     /** User expanded pit on a short viewport — block auto-collapse until they collapse again */
-    vinylPitPinnedOpen: false,
+    pitPinnedOpen: false,
     mobileDefaultsApplied: false,
   };
 
@@ -48,11 +48,15 @@
       if (typeof parsed?.userCollapsed?.chat === 'boolean') {
         state.userCollapsed.chat = parsed.userCollapsed.chat;
       }
-      if (typeof parsed?.userCollapsed?.vinylPit === 'boolean') {
-        state.userCollapsed.vinylPit = parsed.userCollapsed.vinylPit;
+      if (typeof parsed?.userCollapsed?.pit === 'boolean') {
+        state.userCollapsed.pit = parsed.userCollapsed.pit;
+      } else if (typeof parsed?.userCollapsed?.vinylPit === 'boolean') {
+        state.userCollapsed.pit = parsed.userCollapsed.vinylPit;
       }
-      if (typeof parsed?.vinylPitPinnedOpen === 'boolean') {
-        state.vinylPitPinnedOpen = parsed.vinylPitPinnedOpen;
+      if (typeof parsed?.pitPinnedOpen === 'boolean') {
+        state.pitPinnedOpen = parsed.pitPinnedOpen;
+      } else if (typeof parsed?.vinylPitPinnedOpen === 'boolean') {
+        state.pitPinnedOpen = parsed.vinylPitPinnedOpen;
       }
       if (typeof parsed?.mobileDefaultsApplied === 'boolean') {
         state.mobileDefaultsApplied = parsed.mobileDefaultsApplied;
@@ -70,9 +74,9 @@
           userCollapsed: {
             playlist: state.userCollapsed.playlist,
             chat: state.userCollapsed.chat,
-            vinylPit: state.userCollapsed.vinylPit,
+            pit: state.userCollapsed.pit,
           },
-          vinylPitPinnedOpen: state.vinylPitPinnedOpen,
+          pitPinnedOpen: state.pitPinnedOpen,
           mobileDefaultsApplied: state.mobileDefaultsApplied,
         })
       );
@@ -85,8 +89,8 @@
     return state.userCollapsed[side] || state.autoCollapsed[side];
   }
 
-  function isVinylPitCollapsed() {
-    return state.userCollapsed.vinylPit || state.autoCollapsed.vinylPit;
+  function isPitCollapsed() {
+    return state.userCollapsed.pit || state.autoCollapsed.pit;
   }
 
   function requiredStageWidth(playlistCollapsed, chatCollapsed) {
@@ -115,17 +119,17 @@
     if (isMobileLayout()) {
       state.autoCollapsed.playlist = false;
       state.autoCollapsed.chat = false;
-      state.autoCollapsed.vinylPit = false;
+      state.autoCollapsed.pit = false;
       return;
     }
 
     const viewportW = document.documentElement.clientWidth;
     const viewportH = window.innerHeight;
-    const pitAutoMaxH = readCssPx('--vinyl-pit-auto-collapse-max-height', 800);
+    const pitAutoMaxH = readCssPx('--pit-auto-collapse-max-height', 800);
 
     state.autoCollapsed.playlist = false;
     state.autoCollapsed.chat = false;
-    state.autoCollapsed.vinylPit = false;
+    state.autoCollapsed.pit = false;
 
     const userPl = state.userCollapsed.playlist;
     const userCh = state.userCollapsed.chat;
@@ -141,8 +145,8 @@
       state.autoCollapsed.chat = true;
     }
 
-    if (viewportH <= pitAutoMaxH && !state.userCollapsed.vinylPit && !state.vinylPitPinnedOpen) {
-      state.autoCollapsed.vinylPit = true;
+    if (viewportH <= pitAutoMaxH && !state.userCollapsed.pit && !state.pitPinnedOpen) {
+      state.autoCollapsed.pit = true;
     }
   }
 
@@ -150,7 +154,7 @@
     document.body.classList.toggle('layout-mobile-stack', isMobileLayout());
     document.body.classList.toggle('panel-playlist-collapsed', isPanelCollapsed('playlist'));
     document.body.classList.toggle('panel-chat-collapsed', isPanelCollapsed('chat'));
-    document.body.classList.toggle('vinyl-pit-collapsed', isVinylPitCollapsed());
+    document.body.classList.toggle('pit-collapsed', isPitCollapsed());
   }
 
   function updatePlayerSize() {
@@ -204,14 +208,14 @@
     layout();
   }
 
-  function setUserVinylPitCollapsed(collapsed) {
-    state.userCollapsed.vinylPit = collapsed;
+  function setUserPitCollapsed(collapsed) {
+    state.userCollapsed.pit = collapsed;
     if (collapsed) {
-      state.autoCollapsed.vinylPit = false;
-      state.vinylPitPinnedOpen = false;
+      state.autoCollapsed.pit = false;
+      state.pitPinnedOpen = false;
     } else {
-      state.autoCollapsed.vinylPit = false;
-      state.vinylPitPinnedOpen = !isMobileLayout();
+      state.autoCollapsed.pit = false;
+      state.pitPinnedOpen = !isMobileLayout();
     }
     saveState();
     layout();
@@ -234,13 +238,13 @@
     onHeaderActivate('chat', chatHeader);
     onHeaderActivate('playlist', playlistHeader);
 
-    const pitHeader = document.querySelector('.vinyl-pit__header');
+    const pitHeader = document.querySelector('.the-pit__header');
     if (pitHeader) {
       pitHeader.addEventListener('click', (e) => {
         if (!isMobileLayout()) return;
-        if (e.target.closest('[data-vinyl-pit-collapse], button')) return;
-        if (!isVinylPitCollapsed()) return;
-        setUserVinylPitCollapsed(false);
+        if (e.target.closest('[data-pit-collapse], button')) return;
+        if (!isPitCollapsed()) return;
+        setUserPitCollapsed(false);
       });
     }
   }
@@ -264,18 +268,18 @@
     });
   });
 
-  document.querySelectorAll('[data-vinyl-pit-collapse]').forEach((btn) => {
+  document.querySelectorAll('[data-pit-collapse]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      if (isMobileLayout() && isVinylPitCollapsed()) {
-        setUserVinylPitCollapsed(false);
+      if (isMobileLayout() && isPitCollapsed()) {
+        setUserPitCollapsed(false);
         return;
       }
-      setUserVinylPitCollapsed(true);
+      setUserPitCollapsed(true);
     });
   });
 
-  document.querySelectorAll('[data-vinyl-pit-expand]').forEach((btn) => {
-    btn.addEventListener('click', () => setUserVinylPitCollapsed(false));
+  document.querySelectorAll('[data-pit-expand]').forEach((btn) => {
+    btn.addEventListener('click', () => setUserPitCollapsed(false));
   });
 
   let resizeTimer;

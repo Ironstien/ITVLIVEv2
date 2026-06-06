@@ -71,60 +71,107 @@ const ITVRoom = (() => {
     record.classList.toggle('vinyl-record--spin-paused', !playing);
   }
 
-  function buildVinylTooltip(u) {
-    const rankLine =
-      typeof ITVRank !== 'undefined'
-        ? ITVRank.formatLevelRankLine(u.level ?? 1)
-        : `Level ${u.level ?? 1}`;
-    return `
-      <div class="vinyl-tooltip" role="tooltip">
-        <p class="vinyl-tooltip__name">${escapeHtml(u.displayName)}</p>
-        <p class="vinyl-tooltip__rank">${rankLine}</p>
-      </div>
-    `;
+  function pitThumbUrl(videoId) {
+    return `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`;
   }
 
-  function createVinylUserEl(u, { isCurrentDj = false, inQueue = false } = {}) {
-    const disc = document.createElement('div');
-    disc.className = 'vinyl-user';
-    if (isCurrentDj) disc.classList.add('vinyl-user--current-dj');
-    else if (inQueue) disc.classList.add('vinyl-user--queued');
-    if (!isCurrentDj) disc.tabIndex = 0;
-    disc.innerHTML =
-      buildVinylRecord(u) + (isCurrentDj ? '' : buildVinylTooltip(u, { inQueue }));
-    return disc;
-  }
-
-  function renderVinylRow(container, users, { inQueue = false } = {}) {
-    if (!container) return;
-    container.innerHTML = '';
-    if (!users.length) {
-      container.innerHTML = `<p class="vinyl-pit-empty muted">${inQueue ? 'No one queued' : 'No listeners yet'}</p>`;
-      return;
-    }
-
-    const maxDiscs = getVinylPitMaxDiscs();
-    const visible = Number.isFinite(maxDiscs) ? users.slice(0, maxDiscs) : users;
-    const overflow = users.length - visible.length;
-
-    visible.forEach((u) => {
-      container.appendChild(createVinylUserEl(u, { inQueue }));
-    });
-
-    if (overflow > 0) {
-      const more = document.createElement('p');
-      more.className = 'vinyl-pit-overflow muted';
-      more.textContent = `+${overflow} more`;
-      more.setAttribute('aria-label', `${overflow} more ${inQueue ? 'in queue' : 'listening'}`);
-      container.appendChild(more);
-    }
-  }
-
-  function getVinylPitMaxDiscs() {
-    const raw = getComputedStyle(document.documentElement).getPropertyValue('--vinyl-pit-max-discs').trim();
+  function getPitMaxTracks() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--pit-max-tracks').trim();
     if (!raw) return Infinity;
     const n = parseInt(raw, 10);
     return Number.isFinite(n) && n > 0 ? n : Infinity;
+  }
+
+  function buildPitLineupFallback(state) {
+    const tracks = [];
+    const np = state?.nowPlaying;
+    if (np?.videoId) {
+      tracks.push({
+        orderIndex: 0,
+        videoId: np.videoId,
+        title: np.title || '—',
+        djName: np.djName || '—',
+        kind: 'now',
+      });
+    }
+    (state?.globalQueue || []).forEach((entry, i) => {
+      if (!entry?.videoId) return;
+      tracks.push({
+        orderIndex: tracks.length,
+        videoId: entry.videoId,
+        title: entry.title || '—',
+        djName: entry.djName || '—',
+        kind: 'queued',
+      });
+    });
+    return tracks;
+  }
+
+  function resolvePitLineup(state) {
+    const lineup = Array.isArray(state?.pitLineup) ? state.pitLineup : null;
+    const source = lineup?.length ? lineup : buildPitLineupFallback(state);
+    const max = getPitMaxTracks();
+    return Number.isFinite(max) ? source.slice(0, max) : source;
+  }
+
+  function createPitFrameEl(track, index) {
+    const frame = document.createElement('div');
+    frame.className = 'pit-frame';
+    frame.setAttribute('role', 'listitem');
+    if (index === 0 && track.kind === 'now') {
+      frame.classList.add('pit-frame--now');
+    }
+
+    const title = track.title || '—';
+    const djName = track.djName || '—';
+    const videoId = track.videoId;
+    const youtubeUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+    const nowBadge =
+      index === 0 && track.kind === 'now' ? '<span class="pit-frame__badge">Now</span>' : '';
+
+    frame.innerHTML = `
+      ${nowBadge}
+      <a class="pit-frame__link" href="${escapeHtml(youtubeUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(title)}">
+        <img class="pit-frame__thumb" src="${escapeHtml(pitThumbUrl(videoId))}" alt="" width="112" height="63" loading="lazy" />
+      </a>
+      <div class="pit-frame__tooltip" role="tooltip">
+        <p class="pit-frame__tooltip-title">${escapeHtml(title)}</p>
+        <p class="pit-frame__tooltip-dj">${escapeHtml(djName)}</p>
+      </div>
+    `;
+    return frame;
+  }
+
+  function createPitPlaceholderFrame() {
+    const frame = document.createElement('div');
+    frame.className = 'pit-frame pit-frame--placeholder';
+    frame.setAttribute('role', 'listitem');
+    frame.setAttribute('aria-hidden', 'true');
+    return frame;
+  }
+
+  function renderPit(state) {
+    const lineupEl = $('pit-lineup');
+    const emptyEl = $('pit-empty');
+    if (!lineupEl) return;
+
+    const tracks = resolvePitLineup(state);
+    lineupEl.innerHTML = '';
+
+    if (!tracks.length) {
+      for (let i = 0; i < 3; i += 1) {
+        lineupEl.appendChild(createPitPlaceholderFrame());
+      }
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    if (emptyEl) emptyEl.classList.add('hidden');
+    tracks.forEach((track, index) => {
+      if (track?.videoId) {
+        lineupEl.appendChild(createPitFrameEl(track, index));
+      }
+    });
   }
 
   function updateDjBanner(nowPlaying) {
@@ -439,41 +486,6 @@ const ITVRoom = (() => {
     });
   }
 
-  function renderVinylPit(state) {
-    const queueRow = $('vinyl-pit-queue');
-    const listenersRow = $('vinyl-pit-listeners');
-    if (!queueRow || !listenersRow) return;
-
-    if (state.vinylPit) {
-      renderVinylRow(queueRow, state.vinylPit.queue || [], { inQueue: true });
-      renderVinylRow(listenersRow, state.vinylPit.listeners || [], { inQueue: false });
-      return;
-    }
-
-    const activeSocketId = state.nowPlaying?.socketId || null;
-    const users = state.users || [];
-
-    const queuedUsers = (state.globalQueue || [])
-      .map((entry) => ({
-        socketId: entry.socketId || entry.id,
-        displayName: entry.djName,
-        level: 1,
-        avatarUrl: entry.avatarUrl || null,
-      }))
-      .filter((u) => u.displayName);
-
-    const listeners = users
-      .filter((u) => u.socketId !== activeSocketId && !u.inQueue)
-      .sort(
-        (a, b) =>
-          (a.connectedAt || 0) - (b.connectedAt || 0) ||
-          a.displayName.localeCompare(b.displayName)
-      );
-
-    renderVinylRow(queueRow, queuedUsers, { inQueue: true });
-    renderVinylRow(listenersRow, listeners, { inQueue: false });
-  }
-
   function render(state) {
     if (!state) return;
     roomState = state;
@@ -483,7 +495,7 @@ const ITVRoom = (() => {
     updateRoomBanner(state.roomBanner);
     renderOnline(state.users);
     renderQueue(state.globalQueue, state.nowPlaying);
-    renderVinylPit(state);
+    renderPit(state);
     if (typeof ITVVote !== 'undefined') {
       ITVVote.onRoomState(state);
     }
@@ -491,17 +503,17 @@ const ITVRoom = (() => {
 
   let onRoomState = null;
   let onStateUpdate = null;
-  let vinylPitLayoutListenerBound = false;
+  let pitLayoutListenerBound = false;
 
-  function bindVinylPitLayoutListener() {
-    if (vinylPitLayoutListenerBound || typeof window === 'undefined') return;
-    vinylPitLayoutListenerBound = true;
+  function bindPitLayoutListener() {
+    if (pitLayoutListenerBound || typeof window === 'undefined') return;
+    pitLayoutListenerBound = true;
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         if (!roomState) return;
-        renderVinylPit(roomState);
+        renderPit(roomState);
         updateRoomBanner(roomState.roomBanner);
       }, 100);
     });
@@ -534,7 +546,7 @@ const ITVRoom = (() => {
       if (onStateUpdate) onStateUpdate(state);
     };
     socket.on('room:state', onRoomState);
-    bindVinylPitLayoutListener();
+    bindPitLayoutListener();
     bindPlaybackSpinListener();
   }
 

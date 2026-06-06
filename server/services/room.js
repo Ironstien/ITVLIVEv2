@@ -28,6 +28,8 @@ const MAX_CHAT = 80;
 const MAX_MESSAGE_LEN = 280;
 const DEFAULT_TRACK_DURATION_SEC = 600;
 const TRACK_END_MIN_ELAPSED_RATIO = 0.8;
+const PIT_LINEUP_MAX_TRACKS = 16;
+
 const CHAT_MUTE_PRESETS_MS = {
   5: 5 * 60 * 1000,
   15: 15 * 60 * 1000,
@@ -371,19 +373,6 @@ class Room {
       videoId: track?.youtubeId || null,
       position,
       isTestDj: false,
-    };
-  }
-
-  _queueEntryToVinylUser(entry) {
-    return {
-      userId: entry.userId,
-      socketId: entry.socketId,
-      displayName: entry.displayName,
-      avatarUrl: entry.avatarUrl || null,
-      level: entry.level ?? 1,
-      staffRole: entry.staffRole ?? null,
-      badges: Array.isArray(entry.badges) ? entry.badges : [],
-      inQueue: true,
     };
   }
 
@@ -1469,37 +1458,69 @@ class Room {
     return entries;
   }
 
-  _buildVinylPit() {
-    const activeUserId = this.nowPlaying?.userId ?? null;
-    const activeSocketId = this.nowPlaying?.socketId ?? null;
+  _buildPitLineup() {
+    const tracks = [];
 
-    const queue = this._getWaitingQueueEntries().map((entry) => this._queueEntryToVinylUser(entry));
+    const pushTrack = (videoId, title, djName, kind) => {
+      if (!videoId || tracks.length >= PIT_LINEUP_MAX_TRACKS) return;
+      tracks.push({
+        orderIndex: tracks.length,
+        videoId: String(videoId),
+        title: String(title || '—').trim() || '—',
+        djName: String(djName || '—').trim() || '—',
+        kind,
+      });
+    };
 
-    const listeners = [...this.users.values()]
-      .filter(
-        (u) =>
-          !u.isTestDj &&
-          !u.inQueue &&
-          u.userId !== activeUserId &&
-          u.socketId !== activeSocketId
-      )
-      .sort(
-        (a, b) =>
-          (a.connectedAt || 0) - (b.connectedAt || 0) ||
-          a.displayName.localeCompare(b.displayName)
-      )
-      .map((u) => ({
-        userId: u.userId,
-        socketId: u.socketId,
-        displayName: u.displayName,
-        avatarUrl: u.avatarUrl || null,
-        level: u.level ?? 1,
-        staffRole: u.staffRole ?? null,
-        badges: Array.isArray(u.badges) ? u.badges : [],
-        inQueue: false,
-      }));
+    if (this.nowPlaying?.videoId) {
+      pushTrack(
+        this.nowPlaying.videoId,
+        this.nowPlaying.title,
+        this.nowPlaying.djName,
+        'now'
+      );
+    }
 
-    return { queue, listeners };
+    if (
+      this.nowPlaying?.videoId &&
+      this.djQueue.length > 0 &&
+      this._isRealDjPlaying() &&
+      this.djQueue[0].userId === this.nowPlaying.userId
+    ) {
+      const entry = this.djQueue[0];
+      for (const item of (entry.playlistItems || []).slice(1)) {
+        if (tracks.length >= PIT_LINEUP_MAX_TRACKS) break;
+        pushTrack(item.youtubeId, item.title, entry.displayName, 'in-set');
+      }
+    }
+
+    for (const entry of this._getWaitingQueueEntries()) {
+      if (tracks.length >= PIT_LINEUP_MAX_TRACKS) break;
+      const track = entry.playlistItems?.[entry.trackIndex];
+      if (track?.youtubeId) {
+        pushTrack(track.youtubeId, track.title, entry.displayName, 'queued');
+      }
+    }
+
+    if (!this.djQueue.length && this.devQueue.length) {
+      for (const entry of this.devQueue) {
+        if (tracks.length >= PIT_LINEUP_MAX_TRACKS) break;
+        pushTrack(entry.videoId, entry.title, entry.djName, 'queued');
+      }
+    }
+
+    if (
+      tracks.length < PIT_LINEUP_MAX_TRACKS &&
+      !this.djQueue.length &&
+      platform.isTestDjEnabled() &&
+      !this._isTestDjPlaying() &&
+      !this._isRealDjPlaying()
+    ) {
+      const upNext = getTestDjTrack(this._testDjTrackIndex);
+      pushTrack(upNext.videoId, upNext.title, TEST_DJ_DISPLAY_NAME, 'queued');
+    }
+
+    return tracks;
   }
 
   getRoomState() {
@@ -1537,7 +1558,7 @@ class Room {
           }
         : null,
       globalQueue: this._buildGlobalQueuePayload(),
-      vinylPit: this._buildVinylPit(),
+      pitLineup: this._buildPitLineup(),
       users,
       chat: [...this.chat],
     };

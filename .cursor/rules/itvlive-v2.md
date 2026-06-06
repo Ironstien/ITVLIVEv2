@@ -23,14 +23,14 @@ Do **not** port v1 `room.js` or `app.js` logic wholesale — v2 room/player/queu
 | Left | Personal playlists (multiple; one **active** feeds the DJ queue) |
 | Centre | YouTube player + controls + vote |
 | Right | Live Chat, Online, DJ Queue tabs |
-| Bottom | Vinyl Pit — queue row + listening row |
+| Bottom | The Pit — ordered track filmstrip (now playing + up next) |
 
 ## Socket events — separation of concerns
 
 | Event | Payload focus | Must NOT |
 |-------|---------------|----------|
 | `player:sync` | `videoId`, `startedAt`, `serverTime`, track boundary | Include chat, online list, or queue churn |
-| `room:state` | Chat, online users, queue order, vinyl pit, banners | Reload or seek the YouTube iframe |
+| `room:state` | Chat, online users, queue order, pit lineup, banners | Reload or seek the YouTube iframe |
 
 Clients handle `player:sync` only in the player module. UI panels subscribe to `room:state` (or granular derivatives later). Never merge these into one fat payload on every chat message.
 

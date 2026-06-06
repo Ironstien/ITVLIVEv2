@@ -42,20 +42,8 @@ const ITVUserSettings = (() => {
     if (ctx?.setGuestNav) ctx.setGuestNav(trimmed);
   }
 
-  function buildAvatarPreviewHtml(url, username, { pit = false } = {}) {
+  function buildAvatarPreviewHtml(url, username) {
     const initial = escapeHtml((username || '?').charAt(0).toUpperCase());
-    const labelContent = url
-      ? `<img class="vinyl-record__avatar" src="${escapeHtml(url)}" alt="" loading="lazy" />`
-      : `<span class="vinyl-record__initial" aria-hidden="true">${initial}</span>`;
-
-    if (pit) {
-      return `
-        <div class="vinyl-record user-settings__pit-disc" aria-hidden="true">
-          <div class="vinyl-record__label">${labelContent}</div>
-        </div>
-      `;
-    }
-
     if (url) {
       return `<img class="user-settings__chat-avatar" src="${escapeHtml(url)}" alt="" loading="lazy" />`;
     }
@@ -66,9 +54,7 @@ const ITVUserSettings = (() => {
     const url = root.querySelector('#settings-avatar-url')?.value?.trim() || '';
     const username = ctx?.getAccountUser?.()?.username || getGuestName();
     const chatEl = root.querySelector('#settings-avatar-chat-preview');
-    const pitEl = root.querySelector('#settings-avatar-pit-preview');
-    if (chatEl) chatEl.innerHTML = buildAvatarPreviewHtml(url, username, { pit: false });
-    if (pitEl) pitEl.innerHTML = buildAvatarPreviewHtml(url, username, { pit: true });
+    if (chatEl) chatEl.innerHTML = buildAvatarPreviewHtml(url, username);
   }
 
   function renderToggle(id, label, checked, hint = '') {
@@ -169,10 +155,6 @@ const ITVUserSettings = (() => {
           <div class="user-settings__preview">
             <span class="user-settings__preview-label muted">Chat</span>
             <div id="settings-avatar-chat-preview" class="user-settings__preview-box"></div>
-          </div>
-          <div class="user-settings__preview">
-            <span class="user-settings__preview-label muted">Vinyl Pit</span>
-            <div id="settings-avatar-pit-preview" class="user-settings__preview-box user-settings__preview-box--pit"></div>
           </div>
         </div>
         <div class="auth-field">

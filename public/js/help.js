@@ -150,7 +150,7 @@ const ITVHelp = (() => {
           <li><strong>Left — Your Playlist</strong> — build sets (account only).</li>
           <li><strong>Centre — Player</strong> — everyone hears the same synced track.</li>
           <li><strong>Right — Live Chat / Online / DJ Queue</strong> — talk, see who is here, view the line-up.</li>
-          <li><strong>Bottom — The Vinyl Pit</strong> — visual queue row and who is listening.</li>
+          <li><strong>Bottom — The Pit</strong> — filmstrip preview of upcoming tracks in playback order.</li>
         </ul>
       </details>
       <details class="help-faq">

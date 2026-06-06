@@ -2105,82 +2105,198 @@
   font-size: 0.72rem;
 }
 
-.vinyl-pit-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--vinyl-pit-row-gap);
+/* —— The Pit — 35mm filmstrip lineup —— */
+.the-pit-body {
   height: 100%;
   min-height: 0;
+}
+
+.the-pit__backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 120% at 50% 0%, rgba(155, 93, 229, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 80% at 50% 100%, rgba(5, 5, 8, 0.95) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(14, 12, 20, 0.35) 0%, rgba(5, 5, 8, 0.85) 100%);
+}
+
+.the-pit__filmstrip-wrap {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
-.vinyl-pit-row {
-  flex: 1;
-  min-height: 0;
+.the-pit__empty {
+  position: absolute;
+  inset: 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.vinyl-pit-row__label {
-  flex-shrink: 0;
-  font-size: 0.58rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--grey-muted);
-  line-height: var(--vinyl-pit-label-height);
-}
-
-.vinyl-pit-row__discs {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.65rem;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 2px;
-}
-
-.vinyl-pit-empty {
+  justify-content: center;
   margin: 0;
   font-size: 0.75rem;
-  align-self: center;
+  text-align: center;
+  pointer-events: none;
 }
 
-.vinyl-user:not(.vinyl-user--current-dj) {
-  position: relative;
-  flex: 0 0 var(--vinyl-disc-size);
-  width: var(--vinyl-disc-size);
-  height: var(--vinyl-disc-size);
-  min-width: var(--vinyl-disc-size);
-  min-height: var(--vinyl-disc-size);
-  aspect-ratio: 1 / 1;
+.pit-filmstrip {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  outline: none;
+  flex-direction: column;
+  max-width: 100%;
+  min-width: 0;
+  background: var(--pit-film-stock);
+  border-radius: 4px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
-.vinyl-user--current-dj {
-  position: relative;
+.pit-filmstrip__perfs {
+  flex-shrink: 0;
+  height: var(--pit-perf-band);
+  background-color: var(--pit-film-stock);
+  background-image:
+    radial-gradient(
+      ellipse var(--pit-perf-w) var(--pit-perf-h) at center,
+      #ececec 0,
+      #ececec 42%,
+      transparent 44%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 0 1px,
+      transparent 1px 4px
+    );
+  background-size: var(--pit-perf-pitch) 100%, 8px 100%;
+  background-repeat: repeat-x;
+  background-position: center, center;
+}
+
+.pit-filmstrip__perfs--top {
+  border-radius: 4px 4px 0 0;
+}
+
+.pit-filmstrip__perfs--bottom {
+  border-radius: 0 0 4px 4px;
+}
+
+.pit-filmstrip__frames {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  outline: none;
-  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: var(--pit-frame-gap);
+  padding: 5px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(var(--pit-frame-width) + var(--pit-frame-gap) - 1px),
+      rgba(0, 0, 0, 0.35) calc(var(--pit-frame-width) + var(--pit-frame-gap) - 1px),
+      rgba(0, 0, 0, 0.35) calc(var(--pit-frame-width) + var(--pit-frame-gap))
+    ),
+    linear-gradient(180deg, #222228 0%, #16161a 100%);
 }
 
-.vinyl-user--queued .vinyl-record {
+.pit-frame {
+  position: relative;
+  flex: 0 0 var(--pit-frame-width);
+  width: var(--pit-frame-width);
+  height: var(--pit-frame-height);
+  border-radius: var(--pit-frame-radius);
+  overflow: hidden;
+  background: #f4f4f4;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.pit-frame--placeholder {
+  background: linear-gradient(145deg, #f8f8f8, #e8e8e8);
+}
+
+.pit-frame--now {
   box-shadow:
     inset 0 0 0 2px var(--purple-bright),
-    inset 0 0 10px rgba(0, 0, 0, 0.85),
-    0 2px 4px rgba(0, 0, 0, 0.35);
+    0 0 12px rgba(155, 93, 229, 0.45);
 }
 
-.vinyl-user--current-dj .vinyl-record,
+.pit-frame__link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+}
+
+.pit-frame__thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pit-frame__badge {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(123, 44, 191, 0.92);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pit-frame__tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.35rem);
+  transform: translateX(-50%);
+  min-width: 8rem;
+  max-width: 12rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--void-border);
+  background: rgba(14, 12, 20, 0.96);
+  font-size: 0.65rem;
+  line-height: 1.3;
+  color: var(--grey-text);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 5;
+}
+
+.pit-frame:hover .pit-frame__tooltip,
+.pit-frame:focus-within .pit-frame__tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.pit-frame__tooltip-title {
+  margin: 0;
+  color: var(--purple-bright);
+  font-weight: 600;
+}
+
+.pit-frame__tooltip-dj {
+  margin: 0.15rem 0 0;
+  color: var(--grey-muted);
+  font-size: 0.58rem;
+}
+
 .vinyl-record--on-air {
   box-shadow:
     inset 0 0 0 2px var(--flame),
@@ -2270,92 +2386,6 @@
   display: none;
 }
 
-.vinyl-tooltip {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 0.45rem);
-  transform: translateX(-50%) translateY(4px);
-  min-width: 9rem;
-  max-width: 14rem;
-  padding: 0.45rem 0.55rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--void-border);
-  background: rgba(14, 12, 20, 0.96);
-  box-shadow: var(--shadow-glow);
-  font-size: 0.72rem;
-  line-height: 1.35;
-  color: var(--grey-text);
-  text-align: center;
-  white-space: normal;
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease,
-    visibility 0.15s ease;
-  z-index: 20;
-}
-
-.vinyl-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: rgba(14, 12, 20, 0.96);
-}
-
-.vinyl-tooltip p {
-  margin: 0;
-}
-
-.vinyl-tooltip p + p {
-  margin-top: 0.2rem;
-}
-
-.vinyl-tooltip__name {
-  color: var(--purple-bright);
-  font-weight: 700;
-  font-size: 0.78rem;
-}
-
-.vinyl-tooltip__rank {
-  color: var(--grey-muted);
-  font-size: 0.68rem;
-}
-
-.vinyl-tooltip__saying {
-  color: var(--grey-text);
-  font-style: italic;
-}
-
-.vinyl-tooltip__badges {
-  color: var(--flame);
-  font-size: 0.68rem;
-}
-
-.vinyl-tooltip__queue {
-  color: var(--success);
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-
-.vinyl-user:hover .vinyl-tooltip,
-.vinyl-user:focus-visible .vinyl-tooltip {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(0);
-}
-
-.vinyl-user:focus-visible .vinyl-record {
-  box-shadow:
-    inset 0 0 0 2px var(--purple-bright),
-    inset 0 0 12px rgba(0, 0, 0, 0.85),
-    0 2px 4px rgba(0, 0, 0, 0.35);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .vinyl-record--spinning {
     animation: none;
@@ -2363,12 +2393,6 @@
 }
 
 @media (max-width: 768px) {
-  .vinyl-pit .vinyl-record--spinning,
-  .vinyl-pit .vinyl-disc,
-  .vinyl-pit .vinyl-record {
-    animation: none !important;
-  }
-
   .player-stack[data-effect] {
     animation: none !important;
   }
@@ -2447,16 +2471,6 @@
     margin-left: 0;
   }
 
-  .vinyl-pit-overflow {
-    flex: 0 0 auto;
-    align-self: center;
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    padding: 0 0.2rem;
-    white-space: nowrap;
-  }
 }
 
 /* —— User settings modal —— */
@@ -2546,17 +2560,6 @@
   justify-content: center;
   min-width: 2.5rem;
   min-height: 2.5rem;
-}
-
-.user-settings__preview-box--pit {
-  --vinyl-disc-size: 72px;
-  width: 72px;
-  height: 72px;
-}
-
-.user-settings__pit-disc {
-  width: 72px;
-  height: 72px;
 }
 
 .user-settings__chat-avatar {

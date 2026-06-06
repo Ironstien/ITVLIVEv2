@@ -315,7 +315,7 @@ a:hover {
   min-height: 0;
   display: grid;
   grid-template-columns: var(--stage-left-width) minmax(0, 1fr) var(--stage-right-width);
-  grid-template-rows: minmax(0, 1fr) var(--vinyl-pit-height);
+  grid-template-rows: minmax(0, 1fr) var(--pit-height);
   gap: var(--stage-gap);
   padding: var(--stage-padding);
   overflow: hidden;
@@ -329,8 +329,8 @@ body.panel-chat-collapsed {
   --stage-right-width: var(--panel-strip-width);
 }
 
-body.vinyl-pit-collapsed {
-  --vinyl-pit-height: var(--panel-strip-width);
+body.pit-collapsed {
+  --pit-height: var(--panel-strip-width);
 }
 
 .panel-playlist,
@@ -1150,19 +1150,19 @@ body.panel-chat-collapsed .panel-chat.panel {
   font-size: 0.58rem;
 }
 
-/* Vinyl pit — centre column only, between side panels */
-.vinyl-pit {
+/* The Pit — centre column only, between side panels */
+.the-pit {
   grid-column: 2;
   grid-row: 2;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: var(--vinyl-pit-height);
-  max-height: var(--vinyl-pit-height);
+  height: var(--pit-height);
+  max-height: var(--pit-height);
   overflow: hidden;
 }
 
-.vinyl-pit__strip {
+.the-pit__strip {
   display: none;
   flex: 1;
   align-items: center;
@@ -1173,7 +1173,7 @@ body.panel-chat-collapsed .panel-chat.panel {
   box-sizing: border-box;
 }
 
-.vinyl-pit__strip-btn {
+.the-pit__strip-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1191,18 +1191,18 @@ body.panel-chat-collapsed .panel-chat.panel {
     color 0.15s ease;
 }
 
-.vinyl-pit__strip-btn svg {
+.the-pit__strip-btn svg {
   width: 1rem;
   height: 1rem;
   fill: currentColor;
 }
 
-.vinyl-pit__strip-btn:hover {
+.the-pit__strip-btn:hover {
   color: var(--purple-bright);
   border-color: var(--purple-mid);
 }
 
-.vinyl-pit__strip-label {
+.the-pit__strip-label {
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1211,7 +1211,7 @@ body.panel-chat-collapsed .panel-chat.panel {
   user-select: none;
 }
 
-.vinyl-pit__main {
+.the-pit__main {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1219,27 +1219,27 @@ body.panel-chat-collapsed .panel-chat.panel {
   overflow: hidden;
 }
 
-.vinyl-pit__header {
+.the-pit__header {
   flex-shrink: 0;
 }
 
-body.vinyl-pit-collapsed .vinyl-pit__main {
+body.pit-collapsed .the-pit__main {
   display: none;
 }
 
-body.vinyl-pit-collapsed .vinyl-pit__strip {
+body.pit-collapsed .the-pit__strip {
   display: flex;
 }
 
-.vinyl-pit .panel-body {
+.the-pit .panel-body {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: var(--vinyl-pit-inset) 0.85rem;
+  padding: var(--pit-inset) 0.85rem;
   box-sizing: border-box;
-  gap: var(--vinyl-pit-row-gap);
 }
 
 .vinyl-disc {
@@ -1354,7 +1354,7 @@ body.vinyl-pit-collapsed .vinyl-pit__strip {
     width: 100%;
   }
 
-  body.layout-mobile-stack .vinyl-pit {
+  body.layout-mobile-stack .the-pit {
     order: 4;
     grid-column: unset;
     grid-row: unset;
@@ -1365,7 +1365,7 @@ body.vinyl-pit-collapsed .vinyl-pit__strip {
   }
 
   body.layout-mobile-stack .panel-side__strip,
-  body.layout-mobile-stack .vinyl-pit__strip {
+  body.layout-mobile-stack .the-pit__strip {
     display: none !important;
   }
 
@@ -1442,23 +1442,23 @@ body.vinyl-pit-collapsed .vinyl-pit__strip {
     margin: 0 auto;
   }
 
-  body.layout-mobile-stack.vinyl-pit-collapsed .vinyl-pit__main {
+  body.layout-mobile-stack.pit-collapsed .the-pit__main {
     display: flex;
     flex-direction: column;
     height: auto;
   }
 
-  body.layout-mobile-stack.vinyl-pit-collapsed .vinyl-pit .panel-body,
-  body.layout-mobile-stack.vinyl-pit-collapsed .vinyl-pit .vinyl-pit-body {
+  body.layout-mobile-stack.pit-collapsed .the-pit .panel-body,
+  body.layout-mobile-stack.pit-collapsed .the-pit .the-pit-body {
     display: none;
   }
 
-  body.layout-mobile-stack:not(.vinyl-pit-collapsed) .vinyl-pit {
-    min-height: var(--vinyl-pit-height-open);
+  body.layout-mobile-stack:not(.pit-collapsed) .the-pit {
+    min-height: var(--pit-height-open);
   }
 
-  body.layout-mobile-stack:not(.vinyl-pit-collapsed) .vinyl-pit__main {
-    min-height: var(--vinyl-pit-height-open);
+  body.layout-mobile-stack:not(.pit-collapsed) .the-pit__main {
+    min-height: var(--pit-height-open);
   }
 
   body.layout-mobile-stack .controls-row {
