@@ -58,6 +58,9 @@
   --pit-frame-gap: 3px;
   --pit-frame-radius: 5px;
 
+  /* Max tracks in pit lineup (server + client cap) */
+  --pit-lineup-max: 16;
+
   /* Vinyl disc sizing (current DJ flank avatar) */
   --vinyl-disc-max: 66px;
   --vinyl-disc-size: var(--vinyl-disc-max);
@@ -97,6 +100,5 @@
     --vinyl-disc-max: 48px;
     --stage-gap: 0.35rem;
     --stage-padding: 0.35rem;
-    --pit-max-tracks: 10;
   }
 }

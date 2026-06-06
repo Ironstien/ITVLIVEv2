@@ -71,15 +71,36 @@ const ITVRoom = (() => {
     record.classList.toggle('vinyl-record--spin-paused', !playing);
   }
 
+  const PIT_LINEUP_MAX = 16;
+
   function pitThumbUrl(videoId) {
     return `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`;
   }
 
-  function getPitMaxTracks() {
-    const raw = getComputedStyle(document.documentElement).getPropertyValue('--pit-max-tracks').trim();
-    if (!raw) return Infinity;
-    const n = parseInt(raw, 10);
-    return Number.isFinite(n) && n > 0 ? n : Infinity;
+  function readPitCssPx(name, fallback) {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    if (!raw) return fallback;
+    if (raw.endsWith('px')) return parseFloat(raw);
+    const probe = document.createElement('div');
+    probe.style.width = raw;
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    document.body.appendChild(probe);
+    const px = probe.getBoundingClientRect().width;
+    probe.remove();
+    return px || fallback;
+  }
+
+  function getPitVisibleFrameCount(lineupEl) {
+    if (!lineupEl) return 1;
+    const frameWidth = readPitCssPx('--pit-frame-width', 112);
+    const gap = readPitCssPx('--pit-frame-gap', 3);
+    const styles = getComputedStyle(lineupEl);
+    const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+    const available = lineupEl.clientWidth - padX;
+    if (available <= 0) return 1;
+    const count = Math.floor((available + gap) / (frameWidth + gap));
+    return Math.max(1, Math.min(count, PIT_LINEUP_MAX));
   }
 
   function buildPitLineupFallback(state) {
@@ -110,8 +131,7 @@ const ITVRoom = (() => {
   function resolvePitLineup(state) {
     const lineup = Array.isArray(state?.pitLineup) ? state.pitLineup : null;
     const source = lineup?.length ? lineup : buildPitLineupFallback(state);
-    const max = getPitMaxTracks();
-    return Number.isFinite(max) ? source.slice(0, max) : source;
+    return source.slice(0, PIT_LINEUP_MAX);
   }
 
   function createPitFrameEl(track, index) {
@@ -155,11 +175,14 @@ const ITVRoom = (() => {
     const emptyEl = $('pit-empty');
     if (!lineupEl) return;
 
-    const tracks = resolvePitLineup(state);
+    const allTracks = resolvePitLineup(state);
+    const visibleCount = getPitVisibleFrameCount(lineupEl);
+    const tracks = allTracks.slice(0, visibleCount);
+
     lineupEl.innerHTML = '';
 
     if (!tracks.length) {
-      for (let i = 0; i < 3; i += 1) {
+      for (let i = 0; i < visibleCount; i += 1) {
         lineupEl.appendChild(createPitPlaceholderFrame());
       }
       if (emptyEl) emptyEl.classList.remove('hidden');
@@ -508,15 +531,23 @@ const ITVRoom = (() => {
   function bindPitLayoutListener() {
     if (pitLayoutListenerBound || typeof window === 'undefined') return;
     pitLayoutListenerBound = true;
+
+    const schedulePitReflow = () => {
+      if (!roomState) return;
+      renderPit(roomState);
+      updateRoomBanner(roomState.roomBanner);
+    };
+
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (!roomState) return;
-        renderPit(roomState);
-        updateRoomBanner(roomState.roomBanner);
-      }, 100);
+      resizeTimer = setTimeout(schedulePitReflow, 100);
     });
+
+    const pitWrap = document.querySelector('.the-pit__filmstrip-wrap');
+    if (typeof ResizeObserver !== 'undefined' && pitWrap) {
+      new ResizeObserver(() => schedulePitReflow()).observe(pitWrap);
+    }
   }
 
   function bindPlaybackSpinListener() {

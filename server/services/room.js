@@ -1458,6 +1458,42 @@ class Room {
     return entries;
   }
 
+  _appendPitRoundRobinPreview(tracks, pushTrack, { rotateHeadAfterNow = false } = {}) {
+    if (!this.djQueue.length) return;
+
+    const simQueue = this.djQueue.map((entry) => ({
+      userId: entry.userId,
+      displayName: entry.displayName,
+      items: entry.playlistItems || [],
+      nextIndex: entry.trackIndex ?? 0,
+    }));
+
+    if (rotateHeadAfterNow && this.djQueue[0]) {
+      const playing = simQueue.shift();
+      playing.nextIndex = (this.djQueue[0].trackIndex ?? 0) + 1;
+      simQueue.push(playing);
+    }
+
+    const singleDj = simQueue.length === 1;
+    let guard = 0;
+    const maxGuard = PIT_LINEUP_MAX_TRACKS * Math.max(simQueue.length, 1) + 10;
+
+    while (tracks.length < PIT_LINEUP_MAX_TRACKS && simQueue.length > 0 && guard < maxGuard) {
+      guard += 1;
+      const head = simQueue[0];
+      if (head.nextIndex >= head.items.length) {
+        simQueue.shift();
+        continue;
+      }
+      const track = head.items[head.nextIndex];
+      if (track?.youtubeId) {
+        pushTrack(track.youtubeId, track.title, head.displayName, singleDj ? 'in-set' : 'queued');
+      }
+      head.nextIndex += 1;
+      simQueue.push(simQueue.shift());
+    }
+  }
+
   _buildPitLineup() {
     const tracks = [];
 
@@ -1481,25 +1517,15 @@ class Room {
       );
     }
 
-    if (
-      this.nowPlaying?.videoId &&
-      this.djQueue.length > 0 &&
-      this._isRealDjPlaying() &&
-      this.djQueue[0].userId === this.nowPlaying.userId
-    ) {
-      const entry = this.djQueue[0];
-      for (const item of (entry.playlistItems || []).slice(1)) {
-        if (tracks.length >= PIT_LINEUP_MAX_TRACKS) break;
-        pushTrack(item.youtubeId, item.title, entry.displayName, 'in-set');
-      }
-    }
+    if (this.djQueue.length > 0) {
+      const realDjAtHeadPlaying =
+        this.nowPlaying?.videoId &&
+        this._isRealDjPlaying() &&
+        this.djQueue[0].userId === this.nowPlaying.userId;
 
-    for (const entry of this._getWaitingQueueEntries()) {
-      if (tracks.length >= PIT_LINEUP_MAX_TRACKS) break;
-      const track = entry.playlistItems?.[entry.trackIndex];
-      if (track?.youtubeId) {
-        pushTrack(track.youtubeId, track.title, entry.displayName, 'queued');
-      }
+      this._appendPitRoundRobinPreview(tracks, pushTrack, {
+        rotateHeadAfterNow: realDjAtHeadPlaying,
+      });
     }
 
     if (!this.djQueue.length && this.devQueue.length) {
