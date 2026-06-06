@@ -57,6 +57,9 @@
     if (typeof ITVNavProgress !== 'undefined') {
       ITVNavProgress.sync(payload);
     }
+    if (typeof ITVSongTimer !== 'undefined') {
+      ITVSongTimer.sync(payload);
+    }
   }
 
   function updateNavLabel(content, asHtml = false) {

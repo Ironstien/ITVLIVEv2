@@ -33,6 +33,72 @@
 }
 
 
+/* Song timer pill — now playing bar (ITV brand colours) */
+.song-timer-pill {
+  flex-shrink: 0;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.7rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    135deg,
+    rgba(90, 24, 154, 0.92) 0%,
+    rgba(123, 44, 191, 0.82) 55%,
+    rgba(74, 28, 120, 0.88) 100%
+  );
+  border: 1px solid rgba(155, 93, 229, 0.45);
+  box-shadow:
+    0 0 10px rgba(155, 93, 229, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.song-timer-pill::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--rank-legend) 0%,
+    var(--flame) 28%,
+    var(--purple-bright) 58%,
+    var(--rank-member) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.song-timer-pill__text {
+  position: relative;
+  z-index: 1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  color: #fff;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.song-timer-pill.is-idle {
+  opacity: 0.45;
+}
+
+.song-timer-pill.is-idle .song-timer-pill__text {
+  font-weight: 600;
+}
+
 .air-sign {
   flex-shrink: 0;
   margin-left: auto;

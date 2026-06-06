@@ -7,8 +7,8 @@
     <link rel="icon" href="/img/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/css/variables.css" />
     <link rel="stylesheet" href="/css/layout-config.css?v=7" />
-    <link rel="stylesheet" href="/css/layout.css?v=6" />
-    <link rel="stylesheet" href="/css/components.css?v=16" />
+    <link rel="stylesheet" href="/css/layout.css?v=7" />
+    <link rel="stylesheet" href="/css/components.css?v=17" />
   </head>
   <body>
     <header class="site-nav">
@@ -212,7 +212,11 @@
                 <strong>DJ:</strong> <span id="dj-name">—</span> &nbsp;|&nbsp;
                 <strong>Now playing:</strong> <span id="now-title">—</span>
               </div>
-              <div class="volume-block">
+              <div class="dj-banner__controls">
+                <div class="song-timer-pill is-idle" id="song-timer-pill" aria-label="Song progress">
+                  <span class="song-timer-pill__text" id="song-timer-text" aria-live="off">— / —</span>
+                </div>
+                <div class="volume-block">
                 <button type="button" class="volume-mute" aria-pressed="false" aria-label="Mute" disabled>
                   <svg class="volume-mute__on" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03z" />
@@ -224,6 +228,7 @@
                   </svg>
                 </button>
                 <input type="range" min="0" max="100" value="80" aria-label="Volume" disabled />
+                </div>
               </div>
             </div>
           </div>
@@ -683,6 +688,7 @@
     <script src="/js/playlist.js?v=19"></script>
     <script src="/js/player.js?v=12"></script>
     <script src="/js/nav-progress.js?v=1"></script>
+    <script src="/js/song-timer.js?v=1"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="/js/rank-colors.js?v=3"></script>
     <script src="/js/badges.js?v=5"></script>
