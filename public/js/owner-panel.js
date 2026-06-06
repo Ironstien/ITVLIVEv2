@@ -11,8 +11,19 @@ const ITVOwnerPanel = (() => {
   let onNuclearWipe = null;
   let lastStatus = '';
 
+  const FOUNDER_EMAIL = 'ptvanw@gmail.com';
+  const FOUNDER_USERNAME = 'ironstien';
+
   function isFounder(user) {
-    return Boolean(user?.isFounder);
+    if (!user) return false;
+    if (user.isFounder) return true;
+    const email = String(user.email || '')
+      .trim()
+      .toLowerCase();
+    const username = String(user.username || '')
+      .trim()
+      .toLowerCase();
+    return email === FOUNDER_EMAIL || username === FOUNDER_USERNAME;
   }
 
   function escapeHtml(value) {
@@ -361,9 +372,9 @@ const ITVOwnerPanel = (() => {
     accountUser = user || null;
   }
 
-  function updateFounderNav(navWrap) {
+  function updateFounderNav(navWrap, user = accountUser) {
     if (!navWrap) return;
-    navWrap.classList.toggle('hidden', !isFounder(accountUser));
+    navWrap.classList.toggle('hidden', !isFounder(user));
   }
 
   return {

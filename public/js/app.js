@@ -150,8 +150,8 @@
       navAdminPanelWrap.classList.toggle('hidden', !isAdmin(accountUser));
     }
     if (typeof ITVOwnerPanel !== 'undefined') {
-      ITVOwnerPanel.updateFounderNav(navOwnerWrap);
       ITVOwnerPanel.setContext({ user: accountUser });
+      ITVOwnerPanel.updateFounderNav(navOwnerWrap);
     } else if (navOwnerWrap) {
       navOwnerWrap.classList.add('hidden');
     }
@@ -203,11 +203,13 @@
     if (!accountUser || !state) {
       return { inQueue: false, isPlaying: false, mode: 'guest' };
     }
-    const me = (state.users || []).find((u) => u.userId === accountUser.id);
-    const inQueue = Boolean(me?.inQueue);
-    const isPlaying = state.nowPlaying?.userId === accountUser.id;
+    const uid = String(accountUser.id);
+    const isPlaying = String(state.nowPlaying?.userId || '') === uid;
+    const inWaitingQueue = (state.globalQueue || []).some((e) => String(e.userId || '') === uid);
+    const me = (state.users || []).find((u) => String(u.userId || '') === uid);
+    const inQueue = Boolean(me?.inQueue || inWaitingQueue || isPlaying);
     let mode = 'join';
-    if (inQueue && isPlaying) mode = 'skip';
+    if (isPlaying) mode = 'skip';
     else if (inQueue) mode = 'leave';
     return { inQueue, isPlaying, mode };
   }

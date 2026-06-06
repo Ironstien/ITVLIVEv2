@@ -422,13 +422,24 @@ class Room {
 
   _rebindQueueSocket(userId, socketId) {
     const entry = this._findQueueEntryByUserId(userId);
-    if (!entry) return;
-    entry.socketId = socketId;
     const online = this.users.get(socketId);
-    if (online) {
-      entry.displayName = online.displayName;
-      entry.avatarUrl = online.avatarUrl;
-      entry.level = online.level ?? 1;
+    if (entry) {
+      entry.socketId = socketId;
+      if (online) {
+        entry.displayName = online.displayName;
+        entry.avatarUrl = online.avatarUrl;
+        entry.level = online.level ?? 1;
+        online.inQueue = true;
+      }
+    }
+    if (
+      online &&
+      this.nowPlaying?.userId &&
+      String(this.nowPlaying.userId) === String(userId)
+    ) {
+      this.nowPlaying.socketId = socketId;
+      this.nowPlaying.djName = online.displayName;
+      online.inQueue = true;
     }
   }
 
@@ -528,9 +539,14 @@ class Room {
   }
 
   addUserFromAuth(socketId, authUser) {
+    const userId = authUser.id;
+    const hasQueueEntry = Boolean(this._findQueueEntryByUserId(userId));
+    const isNowPlaying = Boolean(
+      this.nowPlaying?.userId && String(this.nowPlaying.userId) === String(userId)
+    );
     const user = {
       socketId,
-      userId: authUser.id,
+      userId,
       displayName: authUser.username,
       level: authUser.level ?? 1,
       xp: authUser.xp ?? 0,
@@ -538,13 +554,13 @@ class Room {
       avatarUrl: authUser.avatarUrl ?? null,
       customSaying: authUser.customSaying ?? '',
       badges: Array.isArray(authUser.badges) ? authUser.badges : [],
-      inQueue: false,
+      inQueue: hasQueueEntry || isNowPlaying,
       connectedAt: Date.now(),
       isAuthenticated: true,
     };
     this.users.set(socketId, user);
-    if (user.userId) {
-      this._rebindQueueSocket(user.userId, socketId);
+    if (userId) {
+      this._rebindQueueSocket(userId, socketId);
     }
     return user;
   }
@@ -1772,6 +1788,14 @@ class Room {
     return tracks;
   }
 
+  _userIsInDjRotation(userId) {
+    if (!userId) return false;
+    if (this._findQueueEntryByUserId(userId)) return true;
+    return Boolean(
+      this.nowPlaying?.userId && String(this.nowPlaying.userId) === String(userId)
+    );
+  }
+
   getRoomState() {
     const users = [...this.users.values()].map((u) => ({
       socketId: u.socketId,
@@ -1783,7 +1807,7 @@ class Room {
       xp: u.xp ?? 0,
       staffRole: u.staffRole ?? null,
       badges: Array.isArray(u.badges) ? u.badges : [],
-      inQueue: u.inQueue,
+      inQueue: Boolean(u.inQueue || this._userIsInDjRotation(u.userId)),
       connectedAt: u.connectedAt ?? null,
       connected: true,
     }));
