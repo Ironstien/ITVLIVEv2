@@ -120,6 +120,16 @@ const ITVRoom = (() => {
     return escapeHtml(dj.displayName);
   }
 
+  function buildStageStatItem(label, value) {
+    return `
+      <div class="current-dj-stats__item">
+        <p class="current-dj-stats__label">${escapeHtml(label)}</p>
+        <p class="current-dj-stats__value">${escapeHtml(value)}</p>
+      </div>
+      <hr class="current-dj-stats__rule" aria-hidden="true" />
+    `;
+  }
+
   function buildStageStatsSection(profile, { loading = false } = {}) {
     const highlights = profile?.stageHighlights || {};
     const most = loading ? '…' : highlights.mostPlayedSong?.title || '—';
@@ -131,11 +141,10 @@ const ITVRoom = (() => {
     return `
       <section class="current-dj-stats__section">
         <h4 class="current-dj-stats__heading">Stage stats</h4>
-        <table class="my-data-table current-dj-stats__table">
-          <tr><th scope="row">Most played</th><td>${escapeHtml(most)}</td></tr>
-          <tr><th scope="row">Highest voted</th><td>${escapeHtml(highest)}</td></tr>
-          <tr><th scope="row">Badges</th><td>${escapeHtml(String(badgesLine))}</td></tr>
-        </table>
+        <hr class="current-dj-stats__rule" aria-hidden="true" />
+        ${buildStageStatItem('Most played', most)}
+        ${buildStageStatItem('Highest voted', highest)}
+        ${buildStageStatItem('Badges', String(badgesLine))}
       </section>
     `;
   }
