@@ -2194,10 +2194,13 @@
   align-items: stretch;
   justify-content: flex-start;
   gap: var(--pit-frame-gap);
-  padding: 5px 8px;
+  width: 100%;
+  max-width: 100%;
+  padding: var(--pit-frames-padding-y) var(--pit-frames-padding-x);
   overflow: hidden;
   min-height: 0;
   scrollbar-width: none;
+  -ms-overflow-style: none;
   background:
     repeating-linear-gradient(
       90deg,
@@ -2207,6 +2210,10 @@
       rgba(0, 0, 0, 0.35) calc(var(--pit-frame-width) + var(--pit-frame-gap))
     ),
     linear-gradient(180deg, #222228 0%, #16161a 100%);
+}
+
+.pit-filmstrip__frames::-webkit-scrollbar {
+  display: none;
 }
 
 .pit-frame {
