@@ -439,7 +439,11 @@ class Room {
   async _syncQueueEntryToActivePlaylist(entry) {
     if (!entry?.userId) return false;
     if (testDjAccount.isTestDjUserId(entry.userId)) {
-      entry.playlistItems = getTestDjPlaylistItems();
+      // Keep in-memory rotation between tracks; only load from file when empty.
+      if (!entry.playlistItems?.length) {
+        entry.playlistItems = getTestDjPlaylistItems();
+        entry.trackIndex = 0;
+      }
       entry.playlistId = TEST_DJ_PLAYLIST_ID;
       if (!Number.isFinite(entry.trackIndex) || entry.trackIndex >= entry.playlistItems.length) {
         entry.trackIndex = 0;
