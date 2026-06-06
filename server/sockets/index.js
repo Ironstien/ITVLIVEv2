@@ -141,9 +141,11 @@ function registerSockets(io) {
     }
   });
 
-  room.setTrackEndHandler(({ finalizeResult }) => {
-    broadcastPlayerSync(io, 'track-end');
-    broadcastRoomState(io, 'track-end');
+  room.setTrackEndHandler(({ finalizeResult, syncPlayback = false }) => {
+    if (syncPlayback) {
+      broadcastPlayerSync(io, 'track-end');
+      broadcastRoomState(io, 'track-end');
+    }
     if (finalizeResult?.progressUpdates?.length) {
       for (const progress of finalizeResult.progressUpdates) {
         emitUserProgress(io, progress);

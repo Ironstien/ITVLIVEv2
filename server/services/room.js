@@ -1088,27 +1088,25 @@ class Room {
     this._clearTrackEndTimer();
     this.nowPlaying = null;
 
+    const notifyTrackEnd = (payload) => {
+      if (this._onTrackEnd) this._onTrackEnd(payload);
+    };
+
+    this._advanceQueue(finished)
+      .then((advanced) => {
+        notifyTrackEnd({ source, advanced, finished, finalizeResult: null, syncPlayback: true });
+      })
+      .catch((err) => {
+        console.error('[room] track end advance failed:', err.message);
+        notifyTrackEnd({ source, advanced: false, finished, finalizeResult: null, syncPlayback: true });
+      });
+
     this._finalizeSession(finished)
-      .then((finalizeResult) =>
-        this._advanceQueue(finished).then((advanced) => ({
-          source,
-          advanced,
-          finished,
-          finalizeResult,
-        }))
-      )
-      .then(({ source, advanced, finished, finalizeResult }) => {
-        if (this._onTrackEnd) {
-          this._onTrackEnd({ source, advanced, finished, finalizeResult });
-        }
+      .then((finalizeResult) => {
+        notifyTrackEnd({ source, finished, finalizeResult, syncPlayback: false });
       })
       .catch((err) => {
         console.error('[room] track end finalize failed:', err.message);
-        this._advanceQueue(finished).then((advanced) => {
-          if (this._onTrackEnd) {
-            this._onTrackEnd({ source, advanced, finished, finalizeResult: null });
-          }
-        });
       });
 
     return { source, finished };
