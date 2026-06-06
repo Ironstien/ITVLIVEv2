@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/css/variables.css" />
     <link rel="stylesheet" href="/css/layout-config.css?v=3" />
     <link rel="stylesheet" href="/css/layout.css?v=5" />
-    <link rel="stylesheet" href="/css/components.css?v=11" />
+    <link rel="stylesheet" href="/css/components.css?v=12" />
   </head>
   <body>
     <header class="site-nav">
@@ -42,6 +42,9 @@
         </li>
         <li>
           <button type="button" class="nav-link-btn" data-open-modal="help">Help</button>
+        </li>
+        <li>
+          <button type="button" class="nav-link-btn" data-open-modal="bug-report">Report Bug</button>
         </li>
         <li>
           <button type="button" class="nav-link-btn" data-open-modal="about">About Us</button>
@@ -444,6 +447,42 @@
       </div>
     </div>
 
+    <div class="modal hidden" data-modal-id="bug-report" role="dialog" aria-labelledby="modal-bug-report-title" aria-hidden="true">
+      <div class="modal-card modal-card--auth modal-card--wide">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-bug-report-title">Report a bug</h2>
+        <p class="modal-card__lead muted">
+          Something broken or confusing? Tell us what happened. Reports are saved for the site admin to review.
+        </p>
+        <form id="bug-report-form" autocomplete="off">
+          <div class="auth-field">
+            <label for="bug-report-description">What went wrong? <span class="muted">(required)</span></label>
+            <textarea
+              id="bug-report-description"
+              name="description"
+              rows="4"
+              maxlength="2000"
+              required
+              placeholder="e.g. Player stuck on loading, vote slider did not move, could not join queue…"
+            ></textarea>
+          </div>
+          <div class="auth-field">
+            <label for="bug-report-steps">Steps to reproduce <span class="muted">(optional)</span></label>
+            <textarea
+              id="bug-report-steps"
+              name="steps"
+              rows="3"
+              maxlength="4000"
+              placeholder="1. Logged in&#10;2. Added track to playlist&#10;3. Clicked Join Queue…"
+            ></textarea>
+          </div>
+          <p id="bug-report-error" class="form-error hidden" role="alert"></p>
+          <p id="bug-report-success" class="form-success hidden" role="status">Thanks — your report was saved.</p>
+          <button type="submit" class="btn-primary auth-submit" id="bug-report-submit">Send report</button>
+        </form>
+      </div>
+    </div>
+
     <div class="modal hidden" data-modal-id="about" role="dialog" aria-labelledby="modal-about-title" aria-hidden="true">
       <div class="modal-card modal-card--wide">
         <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
@@ -650,6 +689,7 @@
     <script src="/js/chat-mentions.js?v=1"></script>
     <script src="/js/user-profile.js?v=3"></script>
     <script src="/js/help.js?v=1"></script>
+    <script src="/js/bug-report.js?v=1"></script>
     <script src="/js/staff-help.js?v=1"></script>
     <script src="/js/room.js?v=21"></script>
     <script src="/js/vote.js?v=5"></script>
@@ -657,7 +697,7 @@
     <script src="/js/my-data.js?v=5"></script>
     <script src="/js/staff-audit-ui.js?v=2"></script>
     <script src="/js/mod-tools.js?v=2"></script>
-    <script src="/js/admin-panel.js?v=4"></script>
+    <script src="/js/admin-panel.js?v=5"></script>
     <script src="/js/app.js?v=27"></script>
   </body>
 </html>

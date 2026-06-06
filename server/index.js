@@ -8,7 +8,8 @@ const { Server } = require('socket.io');
 const { connectDB } = require('./config/db');
 const { validateProductionEnv, getHealthStatus } = require('./config/env');
 const { registerSockets, room } = require('./sockets');
-const { isTestDjEnabled, TEST_DJ_DISPLAY_NAME } = require('./config/testDj');
+const platform = require('./services/platform');
+const { TEST_DJ_DISPLAY_NAME } = require('./config/testDj');
 const { loadPlatformState } = require('./services/platform');
 const { migrateLegacyStaffRoles } = require('./services/staff');
 const { migrateLegacyPlaylistItemIndexes } = require('./services/playlist');
@@ -43,6 +44,7 @@ const adminRoutes = require('./routes/admin');
 const helpRoutes = require('./routes/help');
 const usersRoutes = require('./routes/users');
 const badgesRoutes = require('./routes/badges');
+const bugReportsRoutes = require('./routes/bugReports');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/badges', badgesRoutes);
@@ -50,6 +52,7 @@ app.use('/api/playlists', playlistRoutes);
 app.use('/api/songs', songRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/help', helpRoutes);
+app.use('/api/bug-reports', bugReportsRoutes);
 
 app.get('/health', (_req, res) => {
   const status = getHealthStatus();
@@ -63,8 +66,8 @@ app.get('/health', (_req, res) => {
     production: status.production,
     online: room.countRealOnlineUsers(),
     nowPlaying: room.nowPlaying?.videoId || null,
-    testDj: isTestDjEnabled(),
-    testDjName: isTestDjEnabled() ? TEST_DJ_DISPLAY_NAME : null,
+    testDj: platform.isTestDjEnabled(),
+    testDjName: platform.isTestDjEnabled() ? TEST_DJ_DISPLAY_NAME : null,
   });
 });
 

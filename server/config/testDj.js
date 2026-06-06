@@ -12,7 +12,8 @@ const TEST_DJ_PLAYLIST = [
   { videoId: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito ft. Daddy Yankee' },
 ];
 
-function isTestDjEnabled() {
+/** Fallback when MongoDB is unavailable (local dev without MONGODB_URI). */
+function getEnvTestDjDefault() {
   const raw = String(process.env.ENABLE_TEST_DJ ?? '').trim().toLowerCase();
   if (raw === '0' || raw === 'false' || raw === 'no') return false;
   if (raw === '1' || raw === 'true' || raw === 'yes') return true;
@@ -30,6 +31,6 @@ module.exports = {
   TEST_DJ_DISPLAY_NAME,
   TEST_DJ_AVATAR_URL,
   TEST_DJ_PLAYLIST,
-  isTestDjEnabled,
+  getEnvTestDjDefault,
   getTestDjTrack,
 };

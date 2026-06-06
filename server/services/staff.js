@@ -8,6 +8,7 @@ const { logStaffAction } = require('./staffAudit');
 const { getDefaultBadgeProgressStats } = require('./badges');
 const platform = require('./platform');
 const { parseYoutubeId } = require('./youtube');
+const { room } = require('../sockets');
 
 function normalizeStaffRole(value) {
   if (value === null || value === undefined || value === '' || value === 'none') {
@@ -397,6 +398,11 @@ async function updatePlatform(actor, updates) {
   const result = await platform.updatePlatformSettings(updates);
   if (result.error) return result;
 
+  let testDjRoom = null;
+  if (updates.testDjEnabled !== undefined && previous.testDjEnabled !== result.settings.testDjEnabled) {
+    testDjRoom = await room.applyTestDjSetting(result.settings.testDjEnabled);
+  }
+
   await logStaffAction({
     actorUserId: actor.id,
     actorUsername: actor.username,
@@ -406,10 +412,12 @@ async function updatePlatform(actor, updates) {
       maintenanceMode: result.settings.maintenanceMode,
       maintenanceMessage: result.settings.maintenanceMessage,
       alertsBannerMessage: result.settings.alertsBannerMessage,
+      previousTestDjEnabled: previous.testDjEnabled,
+      testDjEnabled: result.settings.testDjEnabled,
     },
   });
 
-  return result;
+  return { ...result, testDjRoom };
 }
 
 async function migrateLegacyStaffRoles() {

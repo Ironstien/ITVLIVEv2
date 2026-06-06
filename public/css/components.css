@@ -373,6 +373,30 @@
   margin-top: 0.35rem;
 }
 
+.form-success {
+  color: var(--green, #6bcb77);
+  font-size: 0.82rem;
+  margin: 0.5rem 0;
+}
+
+.auth-field textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #2d2d42);
+  background: var(--surface-2, #12121a);
+  color: var(--text, #e8e8f0);
+  font: inherit;
+  line-height: 1.4;
+}
+
+.auth-field textarea:focus {
+  outline: 2px solid var(--purple-bright, #9b6dff);
+  outline-offset: 1px;
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;

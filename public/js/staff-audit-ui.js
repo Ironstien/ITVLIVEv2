@@ -68,6 +68,14 @@ const ITVStaffAuditUI = (() => {
     if (entry.action === 'lockChat') return 'Locked';
     if (entry.action === 'unlockChat') return 'Unlocked';
     if (entry.action === 'managePlatform') {
+      const parts = [];
+      if (d.previousMaintenanceMode !== d.maintenanceMode) {
+        parts.push(d.maintenanceMode ? 'Maintenance on' : 'Maintenance off');
+      }
+      if (d.previousTestDjEnabled !== d.testDjEnabled) {
+        parts.push(d.testDjEnabled ? 'Bob ON' : 'Bob OFF');
+      }
+      if (parts.length) return parts.join(' · ');
       return d.maintenanceMode ? 'Maintenance on' : 'Maintenance off';
     }
     if (entry.action === 'resetUserStats') {

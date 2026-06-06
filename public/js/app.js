@@ -367,6 +367,9 @@
       },
     });
   }
+  if (typeof ITVBugReport !== 'undefined') {
+    ITVBugReport.init({ onToast: toast });
+  }
 
   function wireSocket(socket) {
     if (typeof ITVVote !== 'undefined') {

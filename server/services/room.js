@@ -7,7 +7,6 @@ const {
   TEST_DJ_USER_ID,
   TEST_DJ_DISPLAY_NAME,
   TEST_DJ_AVATAR_URL,
-  isTestDjEnabled,
   getTestDjTrack,
 } = require('../config/testDj');
 const { parseYoutubeId, fetchYoutubeMeta } = require('./youtube');
@@ -66,7 +65,7 @@ class Room {
     /** @type {number} authenticated listeners (excl. DJ) at last track start */
     this._listenerCountAtTrackStart = 0;
 
-    if (isTestDjEnabled()) {
+    if (platform.isTestDjEnabled()) {
       this._ensureTestDjUser();
     }
   }
@@ -132,7 +131,7 @@ class Room {
     this.devQueue = [];
     this._clearDjQueue();
 
-    if (isTestDjEnabled()) {
+    if (platform.isTestDjEnabled()) {
       this.users.delete(TEST_DJ_SOCKET_ID);
     }
 
@@ -1233,7 +1232,7 @@ class Room {
   }
 
   async _playTestDjTrack() {
-    if (!isTestDjEnabled()) return false;
+    if (!platform.isTestDjEnabled()) return false;
     this._ensureTestDjUser();
 
     const track = getTestDjTrack(this._testDjTrackIndex);
@@ -1278,7 +1277,7 @@ class Room {
 
   /** Start test DJ rotation when someone is in the room and nothing else is queued. */
   async maybeStartIdlePlayback() {
-    if (!isTestDjEnabled()) return { ok: false, reason: 'disabled' };
+    if (!platform.isTestDjEnabled()) return { ok: false, reason: 'disabled' };
     if (this._countRealOnlineUsers() === 0) return { ok: false, reason: 'no_audience' };
     if (this.djQueue.length) return { ok: true, started: false, reason: 'dj_queue_active' };
     if (this.nowPlaying) return { ok: true, started: false };
@@ -1287,13 +1286,43 @@ class Room {
 
   /** Start Bob's rotation when the room is idle. */
   async initTestDjPlayback() {
-    if (!isTestDjEnabled()) return { ok: false, reason: 'disabled' };
+    if (!platform.isTestDjEnabled()) return { ok: false, reason: 'disabled' };
     if (this._countRealOnlineUsers() === 0) return { ok: false, reason: 'no_audience' };
     if (this.djQueue.length) return { ok: true, started: false, reason: 'dj_queue_active' };
     this._ensureTestDjUser();
     if (this.nowPlaying) return { ok: true, started: false };
     const started = await this._playTestDjTrack();
     return { ok: true, started };
+  }
+
+  /** Apply runtime Test DJ toggle from admin platform settings. */
+  async applyTestDjSetting(enabled) {
+    if (enabled) {
+      this._ensureTestDjUser();
+      if (
+        this._countRealOnlineUsers() > 0 &&
+        !this.djQueue.length &&
+        !this._isRealDjPlaying() &&
+        !this.nowPlaying
+      ) {
+        const result = await this.initTestDjPlayback();
+        return { ok: true, enabled: true, started: Boolean(result.started) };
+      }
+      return { ok: true, enabled: true, started: false };
+    }
+
+    const wasPlayingTestDj = this._isTestDjPlaying();
+    this.users.delete(TEST_DJ_SOCKET_ID);
+
+    if (wasPlayingTestDj) {
+      this._clearTrackEndTimer();
+      this.nowPlaying = null;
+      if (this.djQueue.length) {
+        await this._startQueueHead({ interruptCurrent: false });
+      }
+    }
+
+    return { ok: true, enabled: false, stopped: wasPlayingTestDj };
   }
 
   validateClientTrackEnd(socketId, payload = {}) {
@@ -1426,7 +1455,7 @@ class Room {
       }));
       entries.push(...devEntries);
 
-      if (isTestDjEnabled() && !this._isTestDjPlaying() && !this._isRealDjPlaying()) {
+      if (platform.isTestDjEnabled() && !this._isTestDjPlaying() && !this._isRealDjPlaying()) {
         const upNext = getTestDjTrack(this._testDjTrackIndex);
         entries.push({
           id: TEST_DJ_SOCKET_ID,

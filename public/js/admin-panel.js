@@ -145,6 +145,55 @@ const ITVAdminPanel = (() => {
       }
     });
 
+    bodyEl.querySelector('#panel-test-dj-save')?.addEventListener('click', async (btn) => {
+      const toggle = bodyEl.querySelector('#panel-test-dj-enabled');
+      btn.currentTarget.disabled = true;
+      try {
+        const result = await updatePlatform({
+          testDjEnabled: Boolean(toggle?.checked),
+        });
+        const started = result.testDjRoom?.started;
+        const stopped = result.testDjRoom?.stopped;
+        let msg = result.settings?.testDjEnabled ? 'Bob McCluckn enabled' : 'Bob McCluckn disabled';
+        if (started) msg += ' — now playing';
+        if (stopped) msg += ' — playback stopped';
+        toast(msg);
+        await refreshAuditLog();
+        render();
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        btn.currentTarget.disabled = false;
+      }
+    });
+
+    bodyEl.querySelector('#panel-bug-reports-download')?.addEventListener('click', async (btn) => {
+      btn.currentTarget.disabled = true;
+      try {
+        const res = await fetch('/api/admin/bug-reports/download', {
+          headers: ITVAuth.authHeaders(),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Download failed');
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bug-reports-${new Date().toISOString().slice(0, 10)}.jsonl`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast('Bug report log downloaded');
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        btn.currentTarget.disabled = false;
+      }
+    });
+
     bodyEl.querySelector('#panel-alerts-banner-save')?.addEventListener('click', async (btn) => {
       const messageInput = bodyEl.querySelector('#panel-alerts-banner-message');
       btn.currentTarget.disabled = true;
@@ -489,6 +538,7 @@ const ITVAdminPanel = (() => {
 
     const settings = platformData.settings || {};
     const blockedVideos = platformData.blockedVideos || [];
+    const bugReportCount = platformData.bugReports?.count ?? 0;
     const roleHtml = formatStaffRole(accountUser);
 
     bodyEl.innerHTML = `
@@ -524,6 +574,33 @@ const ITVAdminPanel = (() => {
           />
         </div>
         <button type="button" class="modal-action-btn auth-submit" id="panel-maintenance-save">Save platform settings</button>
+      </section>
+
+      <section class="admin-tools__section">
+        <h3 class="admin-tools__heading">Test DJ — Bob McCluckn</h3>
+        <p class="admin-tools__hint muted">
+          When enabled, Bob keeps the stage playing with placeholder tracks whenever the real DJ queue is empty and
+          someone is in the room. When disabled, the stage stays silent until a real DJ joins the queue.
+        </p>
+        <div class="admin-tools__row admin-tools__row--checkbox">
+          <label class="admin-tools__checkbox">
+            <input type="checkbox" id="panel-test-dj-enabled"${settings.testDjEnabled ? ' checked' : ''} />
+            Bob McCluckn ON
+          </label>
+        </div>
+        <button type="button" class="modal-action-btn auth-submit" id="panel-test-dj-save">Save Test DJ setting</button>
+      </section>
+
+      <section class="admin-tools__section">
+        <h3 class="admin-tools__heading">Bug reports</h3>
+        <p class="admin-tools__hint muted">
+          Users submit reports from <strong>Report Bug</strong> in the nav. Reports append to
+          <code>data/bug-reports.jsonl</code> on the server.
+        </p>
+        <p class="admin-tools__hint muted">${bugReportCount} report${bugReportCount === 1 ? '' : 's'} on file.</p>
+        <button type="button" class="modal-action-btn auth-submit" id="panel-bug-reports-download"${bugReportCount ? '' : ' disabled'}>
+          Download bug report log
+        </button>
       </section>
 
       <section class="admin-tools__section">

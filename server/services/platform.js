@@ -1,21 +1,28 @@
 const { BlockedVideo, PlatformSettings } = require('../models');
 const { isDbConnected } = require('../config/db');
 const { parseYoutubeId } = require('./youtube');
+const { getEnvTestDjDefault } = require('../config/testDj');
 
 const SETTINGS_KEY = 'global';
 
 /** @type {Set<string>} */
 let blockedVideoIds = new Set();
-/** @type {{ maintenanceMode: boolean, maintenanceMessage: string, alertsBannerMessage: string }} */
+/** @type {{ maintenanceMode: boolean, maintenanceMessage: string, alertsBannerMessage: string, testDjEnabled: boolean }} */
 let settings = {
   maintenanceMode: false,
   maintenanceMessage: '',
   alertsBannerMessage: '',
+  testDjEnabled: false,
 };
 
 async function loadPlatformState() {
   blockedVideoIds = new Set();
-  settings = { maintenanceMode: false, maintenanceMessage: '', alertsBannerMessage: '' };
+  settings = {
+    maintenanceMode: false,
+    maintenanceMessage: '',
+    alertsBannerMessage: '',
+    testDjEnabled: getEnvTestDjDefault(),
+  };
 
   if (!isDbConnected()) return;
 
@@ -26,12 +33,16 @@ async function loadPlatformState() {
 
   let doc = await PlatformSettings.findOne({ key: SETTINGS_KEY });
   if (!doc) {
-    doc = await PlatformSettings.create({ key: SETTINGS_KEY });
+    doc = await PlatformSettings.create({
+      key: SETTINGS_KEY,
+      testDjEnabled: getEnvTestDjDefault(),
+    });
   }
   settings = {
     maintenanceMode: Boolean(doc.maintenanceMode),
     maintenanceMessage: String(doc.maintenanceMessage || '').trim(),
     alertsBannerMessage: String(doc.alertsBannerMessage || '').trim(),
+    testDjEnabled: Boolean(doc.testDjEnabled),
   };
 }
 
@@ -40,11 +51,16 @@ function isVideoBlocked(videoId) {
   return blockedVideoIds.has(String(videoId));
 }
 
+function isTestDjEnabled() {
+  return Boolean(settings.testDjEnabled);
+}
+
 function getPlatformSettings() {
   return {
     maintenanceMode: settings.maintenanceMode,
     maintenanceMessage: settings.maintenanceMessage,
     alertsBannerMessage: settings.alertsBannerMessage,
+    testDjEnabled: settings.testDjEnabled,
     blockedVideoCount: blockedVideoIds.size,
   };
 }
@@ -132,6 +148,9 @@ async function updatePlatformSettings(updates = {}) {
   if (updates.alertsBannerMessage !== undefined) {
     patch.alertsBannerMessage = String(updates.alertsBannerMessage || '').trim().slice(0, 500);
   }
+  if (updates.testDjEnabled !== undefined) {
+    patch.testDjEnabled = Boolean(updates.testDjEnabled);
+  }
 
   const doc = await PlatformSettings.findOneAndUpdate(
     { key: SETTINGS_KEY },
@@ -143,6 +162,7 @@ async function updatePlatformSettings(updates = {}) {
     maintenanceMode: Boolean(doc.maintenanceMode),
     maintenanceMessage: String(doc.maintenanceMessage || '').trim(),
     alertsBannerMessage: String(doc.alertsBannerMessage || '').trim(),
+    testDjEnabled: Boolean(doc.testDjEnabled),
   };
 
   return { ok: true, settings: getPlatformSettings() };
@@ -151,6 +171,7 @@ async function updatePlatformSettings(updates = {}) {
 module.exports = {
   loadPlatformState,
   isVideoBlocked,
+  isTestDjEnabled,
   getPlatformSettings,
   getRoomBanner,
   listBlockedVideos,

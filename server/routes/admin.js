@@ -19,6 +19,7 @@ const { room, emitUserProgress, forceDisconnectUser, sessionRegistry } = require
 const { logStaffAction } = require('../services/staffAudit');
 const { setManualBadge } = require('../services/badges');
 const { MANUAL_BADGE_IDS, getBadgeDefinition } = require('../config/badges');
+const { getReportsMeta, getReportsFilePath } = require('../services/bugReports');
 
 const router = express.Router();
 
@@ -44,15 +45,25 @@ router.get('/platform', requireAdmin, async (_req, res) => {
   try {
     const settings = platform.getPlatformSettings();
     const blocked = await platform.listBlockedVideos(50);
+    const bugReports = getReportsMeta();
     if (blocked.error) {
       res.status(503).json({ error: blocked.error });
       return;
     }
-    res.json({ ok: true, settings, blockedVideos: blocked.videos });
+    res.json({ ok: true, settings, blockedVideos: blocked.videos, bugReports });
   } catch (err) {
     console.error('[admin] platform read failed:', err.message);
     res.status(500).json({ error: 'Failed to load platform settings' });
   }
+});
+
+router.get('/bug-reports/download', requireAdmin, (_req, res) => {
+  const filePath = getReportsFilePath();
+  if (!filePath) {
+    res.status(404).json({ error: 'No bug reports yet' });
+    return;
+  }
+  res.download(filePath, 'bug-reports.jsonl');
 });
 
 router.patch('/platform', requireAdmin, async (req, res) => {
@@ -67,7 +78,12 @@ router.patch('/platform', requireAdmin, async (req, res) => {
       return;
     }
     const io = req.app.get('io');
-    if (io) io.emit('room:state', room.getRoomState());
+    if (io) {
+      if (result.testDjRoom?.started || result.testDjRoom?.stopped) {
+        io.emit('player:sync', room.getPlayerSync());
+      }
+      io.emit('room:state', room.getRoomState());
+    }
     res.json(result);
   } catch (err) {
     console.error('[admin] platform update failed:', err.message);
