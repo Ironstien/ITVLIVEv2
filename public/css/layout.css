@@ -214,6 +214,18 @@ a:hover {
   flex-shrink: 0;
 }
 
+.nav-xp-multiplier {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--purple-bright);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.nav-xp-multiplier.hidden {
+  display: none;
+}
+
 .btn-test-users {
   padding: 0.28rem 0.55rem;
   border: 1px solid var(--void-border);

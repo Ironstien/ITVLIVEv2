@@ -7,13 +7,22 @@ const SETTINGS_KEY = 'global';
 
 /** @type {Set<string>} */
 let blockedVideoIds = new Set();
-/** @type {{ maintenanceMode: boolean, maintenanceMessage: string, alertsBannerMessage: string, testDjEnabled: boolean }} */
+/** @type {{ maintenanceMode: boolean, maintenanceMessage: string, alertsBannerMessage: string, testDjEnabled: boolean, xpMultiplier: number }} */
 let settings = {
   maintenanceMode: false,
   maintenanceMessage: '',
   alertsBannerMessage: '',
   testDjEnabled: false,
+  xpMultiplier: 1,
 };
+
+const MAX_XP_MULTIPLIER = 100;
+
+function normalizeXpMultiplier(value) {
+  const n = Math.floor(Number(value));
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(n, MAX_XP_MULTIPLIER);
+}
 
 async function loadPlatformState() {
   blockedVideoIds = new Set();
@@ -22,6 +31,7 @@ async function loadPlatformState() {
     maintenanceMessage: '',
     alertsBannerMessage: '',
     testDjEnabled: getEnvTestDjDefault(),
+    xpMultiplier: 1,
   };
 
   if (!isDbConnected()) return;
@@ -43,6 +53,7 @@ async function loadPlatformState() {
     maintenanceMessage: String(doc.maintenanceMessage || '').trim(),
     alertsBannerMessage: String(doc.alertsBannerMessage || '').trim(),
     testDjEnabled: Boolean(doc.testDjEnabled),
+    xpMultiplier: normalizeXpMultiplier(doc.xpMultiplier ?? 1),
   };
 }
 
@@ -55,12 +66,17 @@ function isTestDjEnabled() {
   return Boolean(settings.testDjEnabled);
 }
 
+function getXpMultiplier() {
+  return normalizeXpMultiplier(settings.xpMultiplier ?? 1);
+}
+
 function getPlatformSettings() {
   return {
     maintenanceMode: settings.maintenanceMode,
     maintenanceMessage: settings.maintenanceMessage,
     alertsBannerMessage: settings.alertsBannerMessage,
     testDjEnabled: settings.testDjEnabled,
+    xpMultiplier: getXpMultiplier(),
     blockedVideoCount: blockedVideoIds.size,
   };
 }
@@ -151,6 +167,13 @@ async function updatePlatformSettings(updates = {}) {
   if (updates.testDjEnabled !== undefined) {
     patch.testDjEnabled = Boolean(updates.testDjEnabled);
   }
+  if (updates.xpMultiplier !== undefined) {
+    const normalized = normalizeXpMultiplier(updates.xpMultiplier);
+    if (!Number.isFinite(Number(updates.xpMultiplier)) || Number(updates.xpMultiplier) < 1) {
+      return { error: 'XP multiplier must be at least 1' };
+    }
+    patch.xpMultiplier = normalized;
+  }
 
   const doc = await PlatformSettings.findOneAndUpdate(
     { key: SETTINGS_KEY },
@@ -163,6 +186,7 @@ async function updatePlatformSettings(updates = {}) {
     maintenanceMessage: String(doc.maintenanceMessage || '').trim(),
     alertsBannerMessage: String(doc.alertsBannerMessage || '').trim(),
     testDjEnabled: Boolean(doc.testDjEnabled),
+    xpMultiplier: normalizeXpMultiplier(doc.xpMultiplier ?? 1),
   };
 
   return { ok: true, settings: getPlatformSettings() };
@@ -172,6 +196,7 @@ module.exports = {
   loadPlatformState,
   isVideoBlocked,
   isTestDjEnabled,
+  getXpMultiplier,
   getPlatformSettings,
   getRoomBanner,
   listBlockedVideos,

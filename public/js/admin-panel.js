@@ -194,6 +194,28 @@ const ITVAdminPanel = (() => {
       }
     });
 
+    bodyEl.querySelector('#panel-xp-multiplier-save')?.addEventListener('click', async (btn) => {
+      const input = bodyEl.querySelector('#panel-xp-multiplier');
+      const raw = Number(input?.value);
+      if (!Number.isFinite(raw) || raw < 1) {
+        toast('XP multiplier must be at least 1', true);
+        return;
+      }
+      btn.currentTarget.disabled = true;
+      try {
+        const result = await updatePlatform({
+          xpMultiplier: Math.floor(raw),
+        });
+        toast(`XP multiplier set to x${result.settings?.xpMultiplier ?? Math.floor(raw)}`);
+        await refreshAuditLog();
+        render();
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        btn.currentTarget.disabled = false;
+      }
+    });
+
     bodyEl.querySelector('#panel-alerts-banner-save')?.addEventListener('click', async (btn) => {
       const messageInput = bodyEl.querySelector('#panel-alerts-banner-message');
       btn.currentTarget.disabled = true;
@@ -574,6 +596,28 @@ const ITVAdminPanel = (() => {
           />
         </div>
         <button type="button" class="modal-action-btn auth-submit" id="panel-maintenance-save">Save platform settings</button>
+      </section>
+
+      <section class="admin-tools__section">
+        <h3 class="admin-tools__heading">XP multiplier</h3>
+        <p class="admin-tools__hint muted">
+          Multiplies all earned XP (listen, vote, DJ play). Set to <strong>1</strong> for normal rates.
+          Active multiplier is shown in the nav bar for everyone (e.g. <strong>XP x10</strong>).
+        </p>
+        <div class="admin-tools__row">
+          <label class="admin-tools__label" for="panel-xp-multiplier">Multiplier</label>
+          <input
+            type="number"
+            id="panel-xp-multiplier"
+            class="admin-tools__input"
+            min="1"
+            max="100"
+            step="1"
+            inputmode="numeric"
+            value="${escapeHtml(String(settings.xpMultiplier ?? 1))}"
+          />
+        </div>
+        <button type="button" class="modal-action-btn auth-submit" id="panel-xp-multiplier-save">Save XP multiplier</button>
       </section>
 
       <section class="admin-tools__section">

@@ -6,6 +6,7 @@
 (function () {
   const GUEST_NAME_KEY = 'itv-guest-name';
   const navUser = document.getElementById('nav-user');
+  const navXpMultiplier = document.getElementById('nav-xp-multiplier');
   const navAuthLink = document.getElementById('nav-auth-link');
   const siteVersion = document.getElementById('site-version');
   const navModHelpWrap = document.getElementById('nav-mod-help-wrap');
@@ -62,6 +63,18 @@
     if (!navUser) return;
     if (asHtml) navUser.innerHTML = content;
     else navUser.textContent = content;
+  }
+
+  function updateXpMultiplierBadge(multiplier) {
+    if (!navXpMultiplier) return;
+    const mult = Math.floor(Number(multiplier)) || 1;
+    if (mult <= 1) {
+      navXpMultiplier.textContent = '';
+      navXpMultiplier.classList.add('hidden');
+      return;
+    }
+    navXpMultiplier.textContent = `XP x${mult}`;
+    navXpMultiplier.classList.remove('hidden');
   }
 
   function formatAccountNavHtml(user, suffix = '') {
@@ -280,6 +293,8 @@
       const submitBtn = chatForm.querySelector('button[type="submit"]');
       if (submitBtn) submitBtn.disabled = chatLocked && !staff;
     }
+
+    updateXpMultiplierBadge(state?.xpMultiplier);
   }
 
   function updateQueueButton() {
@@ -609,6 +624,7 @@
   ])
     .then(async ([health, user]) => {
       updateSiteVersion(health?.version);
+      updateXpMultiplierBadge(health?.xpMultiplier);
       await setAccountUser(user);
       if (!user && navUser && health.ok) {
         if (typeof ITVAppPrefs !== 'undefined') {

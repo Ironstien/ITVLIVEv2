@@ -1523,6 +1523,7 @@ class Room {
     return {
       phase: 7,
       chatLocked: this._chatLocked,
+      xpMultiplier: platform.getXpMultiplier(),
       roomBanner: platform.getRoomBanner(),
       nowPlaying: this.nowPlaying
         ? {

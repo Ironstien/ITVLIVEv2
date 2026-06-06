@@ -414,6 +414,8 @@ async function updatePlatform(actor, updates) {
       alertsBannerMessage: result.settings.alertsBannerMessage,
       previousTestDjEnabled: previous.testDjEnabled,
       testDjEnabled: result.settings.testDjEnabled,
+      previousXpMultiplier: previous.xpMultiplier,
+      xpMultiplier: result.settings.xpMultiplier,
     },
   });
 

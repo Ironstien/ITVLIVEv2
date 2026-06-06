@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { PlaySession, Vote, XpTransaction, User, Song } = require('../models');
 const { isDbConnected } = require('../config/db');
 const { getLevelForXp } = require('../config/levels');
+const platform = require('./platform');
 const { evaluateAndGrantBadges } = require('./badges');
 const {
   recordListenBadgeStats,
@@ -75,15 +76,19 @@ async function createPlaySessionRecord({ sessionKey, youtubeId, playedByUserId, 
 async function grantXpToUser(userId, amount, reason) {
   if (!isDbConnected() || !isValidObjectId(userId) || amount <= 0) return null;
 
+  const multiplier = platform.getXpMultiplier();
+  const grantedAmount = Math.floor(amount * multiplier);
+  if (grantedAmount <= 0) return null;
+
   const user = await User.findById(userId);
   if (!user) return null;
 
   const beforeLevel = user.level ?? 1;
-  user.xp = (user.xp ?? 0) + amount;
+  user.xp = (user.xp ?? 0) + grantedAmount;
   user.level = getLevelForXp(user.xp);
   await user.save();
 
-  await XpTransaction.create({ userId, amount, reason });
+  await XpTransaction.create({ userId, amount: grantedAmount, reason });
 
   const newBadges = await evaluateAndGrantBadges(user);
 
@@ -91,7 +96,7 @@ async function grantXpToUser(userId, amount, reason) {
     userId: String(user._id),
     xp: user.xp,
     level: user.level,
-    delta: amount,
+    delta: grantedAmount,
     reason,
     leveledUp: user.level > beforeLevel,
     newBadges,
