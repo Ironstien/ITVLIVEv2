@@ -9,6 +9,7 @@ const { getDefaultBadgeProgressStats } = require('./badges');
 const platform = require('./platform');
 const { parseYoutubeId } = require('./youtube');
 const { room } = require('../sockets');
+const { isSystemAccountUser } = require('./testDjAccount');
 
 function normalizeStaffRole(value) {
   if (value === null || value === undefined || value === '' || value === 'none') {
@@ -151,6 +152,9 @@ async function assignStaffRole(actor, targetUserId, staffRoleInput) {
   const target = await findUserDocumentById(targetUserId);
   if (!target) {
     return { error: 'User not found' };
+  }
+  if (isSystemAccountUser(target)) {
+    return { error: 'Cannot change the test DJ account role' };
   }
 
   if (matchesFounderAdmin(target) && staffRole !== 'admin') {
@@ -304,6 +308,9 @@ async function setAccountBan(actor, targetUserId, { banned, reason = '' } = {}) 
 
   const target = await findUserDocumentById(targetUserId);
   if (!target) return { error: 'User not found' };
+  if (isSystemAccountUser(target)) {
+    return { error: 'Cannot ban the test DJ account' };
+  }
   if (target.staffRole === 'admin' || matchesFounderAdmin(target)) {
     return { error: 'Cannot ban an admin account' };
   }

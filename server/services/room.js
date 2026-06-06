@@ -4,11 +4,13 @@ const { MIN_VOTE_LEVEL } = require('../config/levels');
 const { isDbConnected } = require('../config/db');
 const {
   TEST_DJ_SOCKET_ID,
-  TEST_DJ_USER_ID,
   TEST_DJ_DISPLAY_NAME,
   TEST_DJ_AVATAR_URL,
-  getTestDjTrack,
+  TEST_DJ_PLAYLIST_ID,
+  getTestDjPlaylistItems,
 } = require('../config/testDj');
+const testDjAccount = require('./testDjAccount');
+const testDjChat = require('./testDjChat');
 const { parseYoutubeId, fetchYoutubeMeta } = require('./youtube');
 const {
   getActivePlaylist,
@@ -56,8 +58,6 @@ class Room {
     this._pendingVotes = new Map();
     /** @type {Set<string>} sessions where votes were finalized */
     this._finalizedVoteSessions = new Set();
-    /** @type {number} next index in Bob McCluckn's test playlist */
-    this._testDjTrackIndex = 0;
     /** @type {Map<string, { until: number }>} userId → chat mute expiry */
     this._chatMutes = new Map();
     /** @type {boolean} when true, only staff may chat */
@@ -67,30 +67,119 @@ class Room {
     /** @type {number} authenticated listeners (excl. DJ) at last track start */
     this._listenerCountAtTrackStart = 0;
 
-    if (platform.isTestDjEnabled()) {
-      this._ensureTestDjUser();
-    }
   }
 
-  _ensureTestDjUser() {
-    if (this.users.has(TEST_DJ_SOCKET_ID)) return;
+  async initTestDj() {
+    if (!platform.isTestDjEnabled()) return { ok: false, reason: 'disabled' };
+    if (!isDbConnected()) return { ok: false, reason: 'no_db' };
+
+    await testDjAccount.ensureTestDjAccountInDb();
+    await this._refreshTestDjPresence();
+    await this._ensureTestDjQueueEntry();
+    testDjChat.start();
+    return { ok: true };
+  }
+
+  async _refreshTestDjPresence() {
+    if (!platform.isTestDjEnabled()) return;
+    const userId = testDjAccount.getTestDjUserId();
+    if (!userId) return;
+
+    const profile = await testDjAccount.loadTestDjProfile();
+    const existing = this.users.get(TEST_DJ_SOCKET_ID);
+    const inQueue = Boolean(
+      existing?.inQueue || this._findQueueEntryByUserId(userId)
+    );
+
     this.users.set(TEST_DJ_SOCKET_ID, {
       socketId: TEST_DJ_SOCKET_ID,
-      userId: TEST_DJ_USER_ID,
+      userId,
       displayName: TEST_DJ_DISPLAY_NAME,
-      level: 1,
+      level: profile?.level ?? 1,
+      xp: profile?.xp ?? 0,
       staffRole: null,
-      avatarUrl: TEST_DJ_AVATAR_URL,
-      customSaying: 'Test DJ — always in the queue',
-      badges: ['test'],
-      inQueue: true,
-      connectedAt: Date.now(),
+      avatarUrl: profile?.avatarUrl ?? TEST_DJ_AVATAR_URL,
+      customSaying: profile?.customSaying ?? '',
+      badges: Array.isArray(profile?.badges) ? profile.badges : [],
+      inQueue,
+      connectedAt: existing?.connectedAt ?? Date.now(),
+      isAuthenticated: true,
       isTestDj: true,
     });
   }
 
+  async _ensureTestDjQueueEntry() {
+    if (!platform.isTestDjEnabled() || !isDbConnected()) return { ensured: false };
+
+    const userId = testDjAccount.getTestDjUserId();
+    if (!userId) return { ensured: false };
+
+    if (this._findQueueEntryByUserId(userId)) {
+      return { ensured: true, alreadyQueued: true };
+    }
+
+    await this._refreshTestDjPresence();
+    const virtual = this.users.get(TEST_DJ_SOCKET_ID);
+    const profile = await testDjAccount.loadTestDjProfile();
+    const items = getTestDjPlaylistItems();
+
+    const entry = {
+      queueEntryId: this._newQueueEntryId(),
+      userId,
+      socketId: TEST_DJ_SOCKET_ID,
+      displayName: TEST_DJ_DISPLAY_NAME,
+      avatarUrl: profile?.avatarUrl ?? TEST_DJ_AVATAR_URL,
+      level: profile?.level ?? 1,
+      staffRole: null,
+      badges: Array.isArray(profile?.badges) ? profile.badges : [],
+      playlistId: TEST_DJ_PLAYLIST_ID,
+      trackIndex: 0,
+      playlistItems: items,
+      joinedAt: Date.now(),
+    };
+
+    if (virtual) virtual.inQueue = true;
+
+    const queueWasEmpty = this.djQueue.length === 0;
+    this.djQueue.push(entry);
+
+    const newBadges = await evaluateAndGrantBadgesById(userId, { hasQueued: true });
+    if (newBadges.length && virtual) {
+      const fresh = await User.findById(userId).lean();
+      if (fresh?.badges) virtual.badges = fresh.badges;
+    }
+
+    if (
+      queueWasEmpty &&
+      this._countRealOnlineUsers() > 0 &&
+      !this.nowPlaying
+    ) {
+      const started = await this._startQueueHead({ interruptCurrent: false });
+      return { ensured: true, started };
+    }
+
+    return { ensured: true, started: false };
+  }
+
+  _removeTestDjFromRoom() {
+    const userId = testDjAccount.getTestDjUserId();
+    if (userId) {
+      const idx = this.djQueue.findIndex((entry) => entry.userId === userId);
+      if (idx !== -1) {
+        this.djQueue.splice(idx, 1);
+        this._syncUserInQueueFlags(userId, false);
+      }
+    }
+    this.users.delete(TEST_DJ_SOCKET_ID);
+  }
+
   _isTestDjPlaying() {
-    return this.nowPlaying?.socketId === TEST_DJ_SOCKET_ID;
+    const userId = testDjAccount.getTestDjUserId();
+    return Boolean(
+      userId &&
+        this.nowPlaying?.userId &&
+        String(this.nowPlaying.userId) === String(userId)
+    );
   }
 
   _isTestDjSocket(socketId) {
@@ -133,9 +222,8 @@ class Room {
     this.devQueue = [];
     this._clearDjQueue();
 
-    if (platform.isTestDjEnabled()) {
-      this.users.delete(TEST_DJ_SOCKET_ID);
-    }
+    this._removeTestDjFromRoom();
+    testDjChat.stop();
 
     console.log('[room] vacated — no listeners online');
     return true;
@@ -160,10 +248,6 @@ class Room {
     return `qe-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
-  _isTestDjUserId(userId) {
-    return userId === TEST_DJ_USER_ID;
-  }
-
   _findQueueEntryByUserId(userId) {
     if (!userId) return null;
     return this.djQueue.find((entry) => entry.userId === userId) || null;
@@ -171,6 +255,9 @@ class Room {
 
   _findOnlineUserByUserId(userId) {
     if (!userId) return null;
+    if (testDjAccount.isTestDjUserId(userId) && platform.isTestDjEnabled()) {
+      return this.users.get(TEST_DJ_SOCKET_ID) || null;
+    }
     for (const user of this.users.values()) {
       if (user.userId === userId && !user.isTestDj) return user;
     }
@@ -178,6 +265,9 @@ class Room {
   }
 
   _isUserOnline(userId) {
+    if (testDjAccount.isTestDjUserId(userId) && platform.isTestDjEnabled()) {
+      return this.users.has(TEST_DJ_SOCKET_ID);
+    }
     return Boolean(this._findOnlineUserByUserId(userId));
   }
 
@@ -196,6 +286,23 @@ class Room {
       if (user.userId === progress.userId) {
         user.level = progress.level ?? user.level ?? 1;
         user.xp = progress.xp ?? user.xp ?? 0;
+        if (Array.isArray(progress.newBadges) && progress.newBadges.length) {
+          if (!Array.isArray(user.badges)) user.badges = [];
+          for (const badgeId of progress.newBadges) {
+            if (!user.badges.includes(badgeId)) user.badges.push(badgeId);
+          }
+        }
+      }
+    }
+    for (const entry of this.djQueue) {
+      if (entry.userId === progress.userId) {
+        if (progress.level != null) entry.level = progress.level;
+        if (Array.isArray(progress.newBadges) && progress.newBadges.length) {
+          if (!Array.isArray(entry.badges)) entry.badges = [];
+          for (const badgeId of progress.newBadges) {
+            if (!entry.badges.includes(badgeId)) entry.badges.push(badgeId);
+          }
+        }
       }
     }
   }
@@ -223,6 +330,7 @@ class Room {
   setVoteIntent(socketId, payload = {}) {
     const user = this.users.get(socketId);
     if (!user) return { error: 'Not connected' };
+    if (user.isTestDj) return { error: 'Cannot vote' };
     if (!can(user, 'vote')) {
       if (!user.userId) return { error: 'Log in to vote' };
       return { error: `Level ${MIN_VOTE_LEVEL}+ required to vote` };
@@ -321,6 +429,14 @@ class Room {
    */
   async _syncQueueEntryToActivePlaylist(entry) {
     if (!entry?.userId) return false;
+    if (testDjAccount.isTestDjUserId(entry.userId)) {
+      if (!entry.playlistItems?.length) {
+        entry.playlistItems = getTestDjPlaylistItems();
+        entry.playlistId = TEST_DJ_PLAYLIST_ID;
+        entry.trackIndex = 0;
+      }
+      return entry.playlistItems.length > 0;
+    }
     if (!isDbConnected()) {
       return Boolean(entry.playlistItems?.length);
     }
@@ -351,7 +467,9 @@ class Room {
   }
 
   _isRealDjPlaying() {
-    return Boolean(this.nowPlaying?.userId && !this._isTestDjUserId(this.nowPlaying.userId));
+    return Boolean(
+      this.nowPlaying?.userId && !testDjAccount.isTestDjUserId(this.nowPlaying.userId)
+    );
   }
 
   _getWaitingQueueEntries() {
@@ -372,7 +490,6 @@ class Room {
       title: track?.title || '—',
       videoId: track?.youtubeId || null,
       position,
-      isTestDj: false,
     };
   }
 
@@ -417,14 +534,6 @@ class Room {
       this._rebindQueueSocket(user.userId, socketId);
     }
     return user;
-  }
-
-  _findOnlineUserByUserId(userId) {
-    if (!userId) return null;
-    for (const user of this.users.values()) {
-      if (user.userId === userId && !user.isTestDj) return user;
-    }
-    return null;
   }
 
   _getChatMuteStatus(user) {
@@ -622,6 +731,9 @@ class Room {
     }
 
     const id = String(targetUserId || '');
+    if (testDjAccount.isTestDjUserId(id)) {
+      return { error: 'Cannot remove this user from the queue' };
+    }
     const target = this._findOnlineUserByUserId(id);
     if (!target) {
       return { error: 'Target user is not online' };
@@ -780,6 +892,38 @@ class Room {
     return { ok: true, message: msg };
   }
 
+  /** Post a chat line as Bob McCluckn (system-controlled test DJ). */
+  addChatAsBob(text) {
+    if (!platform.isTestDjEnabled()) return { error: 'Test DJ disabled' };
+    const user = this.users.get(TEST_DJ_SOCKET_ID);
+    if (!user?.userId) return { error: 'Test DJ not present' };
+
+    if (this._chatLocked) return { error: 'Chat is locked' };
+
+    const trimmed = String(text || '').trim().slice(0, MAX_MESSAGE_LEN);
+    if (!trimmed) return { error: 'Message is empty' };
+
+    this._chatId += 1;
+    const msg = {
+      id: this._chatId,
+      userId: String(user.userId),
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl || null,
+      level: user.level ?? 1,
+      staffRole: null,
+      text: trimmed,
+      at: Date.now(),
+    };
+    this.chat.push(msg);
+    if (this.chat.length > MAX_CHAT) this.chat.shift();
+
+    recordChatBadgeStats(user.userId, trimmed).catch((err) => {
+      console.warn('[room] test DJ chat badge stats failed:', err.message);
+    });
+
+    return { ok: true, message: msg };
+  }
+
   /**
    * System chat line when a user earns a badge (visible to the whole room).
    * @param {string} displayName
@@ -810,6 +954,9 @@ class Room {
     }
     if (!isDbConnected()) {
       return { error: 'DJ queue requires database connection' };
+    }
+    if (testDjAccount.isTestDjUserId(user.userId)) {
+      return { error: 'Cannot join the queue' };
     }
     if (this._findQueueEntryByUserId(user.userId)) {
       return { error: 'Already in queue' };
@@ -879,6 +1026,9 @@ class Room {
     if (!user) return { error: 'Not connected' };
     if (!can(user, 'skipOwnWaiting')) {
       return { error: 'Log in to manage your queue slot' };
+    }
+    if (testDjAccount.isTestDjUserId(user.userId)) {
+      return { error: 'Cannot leave the queue' };
     }
 
     const idx = this.djQueue.findIndex((entry) => entry.userId === user.userId);
@@ -1125,13 +1275,19 @@ class Room {
     if (idx === -1) return;
 
     const entry = this.djQueue[idx];
+    const isBob = testDjAccount.isTestDjUserId(entry.userId);
     const played = this._resolvePlayedQueueTrack(entry, finished);
     if (!played) {
-      this._removeQueueEntryByUserId(entry.userId);
-      return;
-    }
-
-    if (played.id && isDbConnected()) {
+      if (isBob && platform.isTestDjEnabled()) {
+        entry.playlistItems = getTestDjPlaylistItems();
+        entry.trackIndex = 0;
+      } else {
+        this._removeQueueEntryByUserId(entry.userId);
+        return;
+      }
+    } else if (isBob) {
+      this._rotatePlaylistItemsInMemory(entry, played);
+    } else if (played.id && isDbConnected()) {
       try {
         entry.playlistItems = await movePlayedItemToBottom(
           entry.userId,
@@ -1148,14 +1304,23 @@ class Room {
     }
 
     if (!entry.playlistItems.length) {
-      this._removeQueueEntryByUserId(entry.userId);
-      return;
+      if (isBob && platform.isTestDjEnabled()) {
+        entry.playlistItems = getTestDjPlaylistItems();
+        entry.trackIndex = 0;
+      } else {
+        this._removeQueueEntryByUserId(entry.userId);
+        return;
+      }
     }
 
     if (!this._isUserOnline(entry.userId)) {
-      this._removeQueueEntryByUserId(entry.userId);
-      console.log('[room] removed offline DJ from queue after track end', entry.displayName);
-      return;
+      if (isBob && platform.isTestDjEnabled()) {
+        // Bob stays queued while the admin toggle is on.
+      } else {
+        this._removeQueueEntryByUserId(entry.userId);
+        console.log('[room] removed offline DJ from queue after track end', entry.displayName);
+        return;
+      }
     }
 
     this.djQueue.splice(idx, 1);
@@ -1172,33 +1337,53 @@ class Room {
 
     while (this.djQueue.length) {
       const entry = this.djQueue[0];
+      const isBob = testDjAccount.isTestDjUserId(entry.userId);
 
       if (!this._isUserOnline(entry.userId)) {
-        this.djQueue.shift();
-        this._syncUserInQueueFlags(entry.userId, false);
-        console.log('[room] skipped offline DJ at queue head', entry.displayName);
-        continue;
+        if (isBob && platform.isTestDjEnabled()) {
+          // Bob remains at the head when enabled.
+        } else {
+          this.djQueue.shift();
+          this._syncUserInQueueFlags(entry.userId, false);
+          console.log('[room] skipped offline DJ at queue head', entry.displayName);
+          continue;
+        }
       }
 
       const synced = await this._syncQueueEntryToActivePlaylist(entry);
       if (!synced) {
-        this.djQueue.shift();
-        this._syncUserInQueueFlags(entry.userId, false);
-        console.log('[room] removed queue entry with no active playlist tracks', entry.displayName);
-        continue;
+        if (isBob && platform.isTestDjEnabled()) {
+          entry.playlistItems = getTestDjPlaylistItems();
+          entry.trackIndex = 0;
+        } else {
+          this.djQueue.shift();
+          this._syncUserInQueueFlags(entry.userId, false);
+          console.log('[room] removed queue entry with no active playlist tracks', entry.displayName);
+          continue;
+        }
       }
 
-      const track = entry.playlistItems[entry.trackIndex];
+      let track = entry.playlistItems[entry.trackIndex];
       if (!track) {
-        this.djQueue.shift();
-        this._syncUserInQueueFlags(entry.userId, false);
-        continue;
+        if (isBob && platform.isTestDjEnabled()) {
+          entry.playlistItems = getTestDjPlaylistItems();
+          entry.trackIndex = 0;
+          track = entry.playlistItems[0];
+        } else {
+          this.djQueue.shift();
+          this._syncUserInQueueFlags(entry.userId, false);
+          continue;
+        }
       }
+      if (!track) continue;
 
       const online = this._findOnlineUserByUserId(entry.userId);
+      if (!online) continue;
       entry.socketId = online.socketId;
       entry.displayName = online.displayName;
       entry.avatarUrl = online.avatarUrl;
+      entry.level = online.level ?? entry.level ?? 1;
+      entry.badges = Array.isArray(online.badges) ? online.badges : entry.badges;
 
       const result = await this.startTrack({
         videoId: track.youtubeId,
@@ -1218,28 +1403,6 @@ class Room {
     return false;
   }
 
-  async _playTestDjTrack() {
-    if (!platform.isTestDjEnabled()) return false;
-    this._ensureTestDjUser();
-
-    const track = getTestDjTrack(this._testDjTrackIndex);
-    this._testDjTrackIndex += 1;
-
-    const result = await this.startTrack({
-      videoId: track.videoId,
-      title: track.title,
-      djName: TEST_DJ_DISPLAY_NAME,
-      socketId: TEST_DJ_SOCKET_ID,
-      userId: TEST_DJ_USER_ID,
-    });
-    if (result.error) {
-      console.warn('[room] test DJ track failed:', result.error);
-      return false;
-    }
-    console.log('[room] test DJ now playing', track.title);
-    return true;
-  }
-
   async _advanceQueue(finished = null) {
     if (this.devQueue.length) {
       const next = this.devQueue.shift();
@@ -1247,7 +1410,7 @@ class Room {
       return !result.error;
     }
 
-    if (finished?.userId && !this._isTestDjUserId(finished.userId)) {
+    if (finished?.userId) {
       await this._rotateAfterDjTrack(finished);
     }
 
@@ -1259,47 +1422,62 @@ class Room {
       return false;
     }
 
-    return this._playTestDjTrack();
+    if (platform.isTestDjEnabled()) {
+      await this._ensureTestDjQueueEntry();
+      if (this.djQueue.length) {
+        return this._startQueueHead({ interruptCurrent: false });
+      }
+    }
+
+    return false;
   }
 
-  /** Start test DJ rotation when someone is in the room and nothing else is queued. */
+  /** Ensure Bob is queued and start playback when the room would otherwise be idle. */
   async maybeStartIdlePlayback() {
     if (!platform.isTestDjEnabled()) return { ok: false, reason: 'disabled' };
     if (this._countRealOnlineUsers() === 0) return { ok: false, reason: 'no_audience' };
-    if (this.djQueue.length) return { ok: true, started: false, reason: 'dj_queue_active' };
     if (this.nowPlaying) return { ok: true, started: false };
-    return this.initTestDjPlayback();
-  }
 
-  /** Start Bob's rotation when the room is idle. */
-  async initTestDjPlayback() {
-    if (!platform.isTestDjEnabled()) return { ok: false, reason: 'disabled' };
-    if (this._countRealOnlineUsers() === 0) return { ok: false, reason: 'no_audience' };
-    if (this.djQueue.length) return { ok: true, started: false, reason: 'dj_queue_active' };
-    this._ensureTestDjUser();
-    if (this.nowPlaying) return { ok: true, started: false };
-    const started = await this._playTestDjTrack();
-    return { ok: true, started };
+    testDjChat.start();
+    await this._refreshTestDjPresence();
+    const ensured = await this._ensureTestDjQueueEntry();
+    if (!this.djQueue.length) {
+      return { ok: true, started: false, reason: 'queue_unavailable' };
+    }
+    if (!this.nowPlaying) {
+      const started = ensured.started || (await this._startQueueHead({ interruptCurrent: false }));
+      return { ok: true, started: Boolean(started) };
+    }
+    return { ok: true, started: false };
   }
 
   /** Apply runtime Test DJ toggle from admin platform settings. */
   async applyTestDjSetting(enabled) {
     if (enabled) {
-      this._ensureTestDjUser();
-      if (
-        this._countRealOnlineUsers() > 0 &&
-        !this.djQueue.length &&
-        !this._isRealDjPlaying() &&
-        !this.nowPlaying
-      ) {
-        const result = await this.initTestDjPlayback();
-        return { ok: true, enabled: true, started: Boolean(result.started) };
+      if (!isDbConnected()) {
+        return { ok: false, error: 'Database required for Test DJ' };
       }
-      return { ok: true, enabled: true, started: false };
+      await testDjAccount.ensureTestDjAccountInDb();
+      await this._refreshTestDjPresence();
+      const ensured = await this._ensureTestDjQueueEntry();
+      testDjChat.start();
+
+      let started = Boolean(ensured.started);
+      if (
+        !started &&
+        this._countRealOnlineUsers() > 0 &&
+        !this.nowPlaying &&
+        this.djQueue.length
+      ) {
+        started = await this._startQueueHead({ interruptCurrent: false });
+      }
+
+      return { ok: true, enabled: true, started: Boolean(started) };
     }
 
     const wasPlayingTestDj = this._isTestDjPlaying();
-    this.users.delete(TEST_DJ_SOCKET_ID);
+    this._removeTestDjFromRoom();
+    testDjChat.stop();
 
     if (wasPlayingTestDj) {
       this._clearTrackEndTimer();
@@ -1438,21 +1616,8 @@ class Room {
         title: entry.title,
         videoId: entry.videoId,
         position: index + 1,
-        isTestDj: false,
       }));
       entries.push(...devEntries);
-
-      if (platform.isTestDjEnabled() && !this._isTestDjPlaying() && !this._isRealDjPlaying()) {
-        const upNext = getTestDjTrack(this._testDjTrackIndex);
-        entries.push({
-          id: TEST_DJ_SOCKET_ID,
-          djName: TEST_DJ_DISPLAY_NAME,
-          title: upNext.title,
-          videoId: upNext.videoId,
-          position: entries.length + 1,
-          isTestDj: true,
-        });
-      }
     }
 
     return entries;
@@ -1533,17 +1698,6 @@ class Room {
         if (tracks.length >= PIT_LINEUP_MAX_TRACKS) break;
         pushTrack(entry.videoId, entry.title, entry.djName, 'queued');
       }
-    }
-
-    if (
-      tracks.length < PIT_LINEUP_MAX_TRACKS &&
-      !this.djQueue.length &&
-      platform.isTestDjEnabled() &&
-      !this._isTestDjPlaying() &&
-      !this._isRealDjPlaying()
-    ) {
-      const upNext = getTestDjTrack(this._testDjTrackIndex);
-      pushTrack(upNext.videoId, upNext.title, TEST_DJ_DISPLAY_NAME, 'queued');
     }
 
     return tracks;

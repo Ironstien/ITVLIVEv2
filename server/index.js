@@ -113,6 +113,7 @@ async function start() {
   await migrateLegacyStaffRoles();
   await ensureFounderAdminsInDb();
   await loadPlatformState();
+  await room.initTestDj();
 
   server.listen(PORT, () => {
     console.log(`[itvlive-v2] http://localhost:${PORT}`);

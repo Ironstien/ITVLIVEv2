@@ -27,7 +27,7 @@ const ITVModTools = (() => {
   function getOnlineAccountUsers() {
     const state = typeof ITVRoom !== 'undefined' ? ITVRoom.getState() : null;
     const users = state?.users || [];
-    return users.filter((u) => u.userId && !u.isTestDj);
+    return users.filter((u) => u.userId);
   }
 
   function toast(msg, isError) {

@@ -623,8 +623,9 @@ const ITVAdminPanel = (() => {
       <section class="admin-tools__section">
         <h3 class="admin-tools__heading">Test DJ — Bob McCluckn</h3>
         <p class="admin-tools__hint muted">
-          When enabled, Bob keeps the stage playing with placeholder tracks whenever the real DJ queue is empty and
-          someone is in the room. When disabled, the stage stays silent until a real DJ joins the queue.
+          When enabled, Bob McCluckn appears as a regular user in the room and DJ queue. He rotates like any other DJ,
+          earns XP and badges organically, and keeps the stage moving when listeners are present. He cannot be logged
+          into — only this toggle controls him. When disabled, he leaves the room and queue entirely.
         </p>
         <div class="admin-tools__row admin-tools__row--checkbox">
           <label class="admin-tools__checkbox">

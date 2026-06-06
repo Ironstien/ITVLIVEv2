@@ -6,6 +6,8 @@ const { can } = require('../config/permissions');
 const { verifyToken, isJwtConfigured } = require('../lib/jwt');
 const { isDbConnected } = require('../config/db');
 const { toSocketUser, toPublicUser, findUserDocumentById, assertUserNotBanned } = require('../services/auth');
+const { isSystemAccountUser } = require('../services/testDjAccount');
+const testDjChat = require('../services/testDjChat');
 const { logStaffAction } = require('../services/staffAudit');
 const { SessionRegistry } = require('./sessionRegistry');
 
@@ -45,6 +47,7 @@ async function resolveSocketAuthUser(token) {
   const payload = verifyToken(String(token).trim());
   const doc = await findUserDocumentById(payload.sub);
   if (!doc) throw new Error('Invalid token');
+  if (isSystemAccountUser(doc)) throw new Error('Invalid token');
   const banned = assertUserNotBanned(doc);
   if (banned?.error) throw new Error('Account is banned');
   return toSocketUser(toPublicUser(doc));
@@ -111,6 +114,7 @@ function announceBadgeUnlocks(io, { userId, newBadgeIds }) {
     const badgeUnlocks = resolveBadgeDetails(newBadgeIds);
     for (const b of badgeUnlocks) {
       room.addBadgeEarnedChat(name, b.name);
+      testDjChat.onBadgeEarned({ userId, displayName: name, badgeName: b.name });
     }
     broadcastRoomState(io, 'badge-earned');
     emitUserProgress(io, {
@@ -127,6 +131,10 @@ function forceDisconnectUser(io, userId, message) {
 
 function registerSockets(io) {
   setBadgeNotifyHandler((payload) => announceBadgeUnlocks(io, payload));
+  testDjChat.configure({
+    room,
+    broadcast: () => broadcastRoomState(io, 'test-dj-chat'),
+  });
 
   io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -147,9 +155,12 @@ function registerSockets(io) {
       broadcastRoomState(io, 'track-end');
     }
     if (finalizeResult?.progressUpdates?.length) {
+      let refreshRoom = false;
       for (const progress of finalizeResult.progressUpdates) {
         emitUserProgress(io, progress);
+        if (progress.newBadges?.length) refreshRoom = true;
       }
+      if (refreshRoom) broadcastRoomState(io, 'progress-badges');
     }
   });
 
@@ -242,6 +253,7 @@ function registerSockets(io) {
       }
 
       broadcastRoomState(io, 'chat');
+      testDjChat.onUserChat(result.message);
       if (typeof ack === 'function') ack(result);
     });
 

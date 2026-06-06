@@ -1,9 +1,11 @@
-/** Virtual test DJ — keeps the stage playing when no real DJs are queued. */
+/** Virtual test DJ — Bob McCluckn, system-controlled via admin toggle. */
 
 const TEST_DJ_SOCKET_ID = 'test-dj-bob-mccluckn';
-const TEST_DJ_USER_ID = 'test-user-bob-mccluckn';
+const TEST_DJ_EMAIL = 'bob-mccluckn@system.itvlive.internal';
+const TEST_DJ_USERNAME = 'Bob_McCluckn';
 const TEST_DJ_DISPLAY_NAME = 'Bob McCluckn';
 const TEST_DJ_AVATAR_URL = '/img/favicon.png';
+const TEST_DJ_PLAYLIST_ID = 'test-dj-playlist';
 
 /** Finite-length tracks so the server track-end timer can advance reliably. */
 const TEST_DJ_PLAYLIST = [
@@ -20,17 +22,22 @@ function getEnvTestDjDefault() {
   return process.env.NODE_ENV !== 'production';
 }
 
-function getTestDjTrack(index) {
-  const i = ((index % TEST_DJ_PLAYLIST.length) + TEST_DJ_PLAYLIST.length) % TEST_DJ_PLAYLIST.length;
-  return TEST_DJ_PLAYLIST[i];
+function getTestDjPlaylistItems() {
+  return TEST_DJ_PLAYLIST.map((track, index) => ({
+    id: `test-dj-item-${index}`,
+    youtubeId: track.videoId,
+    title: track.title,
+  }));
 }
 
 module.exports = {
   TEST_DJ_SOCKET_ID,
-  TEST_DJ_USER_ID,
+  TEST_DJ_EMAIL,
+  TEST_DJ_USERNAME,
   TEST_DJ_DISPLAY_NAME,
   TEST_DJ_AVATAR_URL,
+  TEST_DJ_PLAYLIST_ID,
   TEST_DJ_PLAYLIST,
   getEnvTestDjDefault,
-  getTestDjTrack,
+  getTestDjPlaylistItems,
 };

@@ -5,6 +5,11 @@ const { signToken } = require('../lib/jwt');
 const { getLevelForXp, MAX_LEVEL } = require('../config/levels');
 const { ensureFounderAdmin, sanitizeStaffRole } = require('../config/founderAdmins');
 const { evaluateAndGrantBadges } = require('./badges');
+const {
+  isReservedTestDjEmail,
+  isReservedTestDjUsername,
+  isSystemAccountUser,
+} = require('./testDjAccount');
 
 const BCRYPT_ROUNDS = 10;
 const MIN_PASSWORD_LEN = 8;
@@ -137,6 +142,9 @@ async function registerUser({ email, username, password }) {
   requireDb();
   const validated = validateRegisterInput({ email, username, password });
   if (validated.error) return validated;
+  if (isReservedTestDjEmail(validated.email) || isReservedTestDjUsername(validated.username)) {
+    return { error: 'That email or username is not available' };
+  }
 
   const passwordHash = await bcrypt.hash(validated.password, BCRYPT_ROUNDS);
   try {
@@ -171,6 +179,9 @@ async function loginUser({ email, password }) {
 
   let user = await User.findOne({ email: normalizedEmail });
   if (!user) return { error: 'Invalid email or password' };
+  if (isSystemAccountUser(user)) {
+    return { error: 'Invalid email or password' };
+  }
   if (user.bannedAt) {
     const reason = String(user.banReason || '');
     if (reason.includes('Self-deactivated')) {
@@ -220,6 +231,7 @@ async function changePassword(userId, { currentPassword, newPassword, confirmPas
   requireDb();
   const user = await User.findById(userId);
   if (!user) return { error: 'User not found' };
+  if (isSystemAccountUser(user)) return { error: 'This account cannot be modified' };
   if (user.bannedAt) return { error: 'Account is deactivated' };
 
   const current = String(currentPassword || '');
@@ -248,6 +260,7 @@ async function deactivateAccount(userId) {
   requireDb();
   const user = await User.findById(userId);
   if (!user) return { error: 'User not found' };
+  if (isSystemAccountUser(user)) return { error: 'This account cannot be deactivated' };
   if (user.bannedAt) return { error: 'Account is already deactivated' };
 
   user.bannedAt = new Date();

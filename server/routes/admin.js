@@ -31,7 +31,7 @@ router.get('/chat-mutes', requireStaff, (_req, res) => {
 
 router.get('/online-users', requireAdmin, (_req, res) => {
   const users = [...room.users.values()]
-    .filter((u) => u.userId && !u.isTestDj)
+    .filter((u) => u.userId)
     .map((u) => ({
       userId: u.userId,
       displayName: u.displayName,

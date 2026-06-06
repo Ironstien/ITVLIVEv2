@@ -53,6 +53,8 @@ const userSchema = new mongoose.Schema(
     },
     bannedAt: { type: Date, default: null },
     banReason: { type: String, default: '', maxlength: 300 },
+    /** System-controlled accounts (e.g. Bob McCluckn) — no login or registration. */
+    isSystemAccount: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
