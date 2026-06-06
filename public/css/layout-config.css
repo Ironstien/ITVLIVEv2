@@ -49,6 +49,7 @@
 
   /* 35mm filmstrip geometry */
   --pit-film-stock: #1a1a1e;
+  --pit-perf-dot: #5a5a62;
   --pit-perf-band: 16px;
   --pit-perf-pitch: 30px;
   --pit-perf-w: 16px;

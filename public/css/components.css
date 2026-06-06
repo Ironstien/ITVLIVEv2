@@ -2266,8 +2266,8 @@
   background-image:
     radial-gradient(
       ellipse var(--pit-perf-w) var(--pit-perf-h) at center,
-      #ececec 0,
-      #ececec 42%,
+      var(--pit-perf-dot) 0,
+      var(--pit-perf-dot) 42%,
       transparent 44%
     ),
     repeating-linear-gradient(
