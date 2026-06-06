@@ -310,7 +310,7 @@ class Room {
   _countAuthenticatedListeners(excludeUserId = null) {
     let n = 0;
     for (const user of this.users.values()) {
-      if (user.isTestDj || !user.userId || !user.isAuthenticated) continue;
+      if (!user.userId || !user.isAuthenticated) continue;
       if (excludeUserId && user.userId === excludeUserId) continue;
       n += 1;
     }
@@ -320,7 +320,7 @@ class Room {
   _listenerUserIdsAtTrackEnd(djUserId) {
     const ids = [];
     for (const user of this.users.values()) {
-      if (user.isTestDj || !user.userId || !user.isAuthenticated) continue;
+      if (!user.userId || !user.isAuthenticated) continue;
       if (user.userId === djUserId) continue;
       ids.push(user.userId);
     }
@@ -400,6 +400,15 @@ class Room {
       this._applyUserProgress(progress);
     }
 
+    const bobId = testDjAccount.getTestDjUserId();
+    if (
+      bobId &&
+      (testDjAccount.isTestDjUserId(finished.userId) ||
+        result.progressUpdates.some((p) => testDjAccount.isTestDjUserId(p.userId)))
+    ) {
+      await this._refreshTestDjPresence();
+    }
+
     return result;
   }
 
@@ -474,7 +483,7 @@ class Room {
 
   _getWaitingQueueEntries() {
     if (!this.djQueue.length) return [];
-    if (this._isRealDjPlaying() && this.djQueue[0]?.userId === this.nowPlaying.userId) {
+    if (this.nowPlaying?.userId && this.djQueue[0]?.userId === this.nowPlaying.userId) {
       return this.djQueue.slice(1);
     }
     return [...this.djQueue];
@@ -1683,13 +1692,12 @@ class Room {
     }
 
     if (this.djQueue.length > 0) {
-      const realDjAtHeadPlaying =
+      const queueHeadIsNowPlaying =
         this.nowPlaying?.videoId &&
-        this._isRealDjPlaying() &&
-        this.djQueue[0].userId === this.nowPlaying.userId;
+        this.djQueue[0]?.userId === this.nowPlaying.userId;
 
       this._appendPitRoundRobinPreview(tracks, pushTrack, {
-        rotateHeadAfterNow: realDjAtHeadPlaying,
+        rotateHeadAfterNow: queueHeadIsNowPlaying,
       });
     }
 
