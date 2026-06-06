@@ -150,7 +150,7 @@ const ITVUserProfile = (() => {
     renderGuest(snapshot);
   }
 
-  function handleChatClick(e) {
+  function handleNameBtnClick(e) {
     const btn = e.target.closest('.chat-name-btn');
     if (!btn) return;
     e.preventDefault();
@@ -171,8 +171,13 @@ const ITVUserProfile = (() => {
   function init() {
     bodyEl = document.getElementById('modal-user-profile-body');
     titleEl = document.getElementById('modal-user-profile-title');
-    const chatEl = document.getElementById('chat-messages');
-    chatEl?.addEventListener('click', handleChatClick);
+    [
+      document.getElementById('chat-messages'),
+      document.getElementById('online-list'),
+      document.querySelector('[data-pane="queue"]'),
+    ].forEach((el) => {
+      el?.addEventListener('click', handleNameBtnClick);
+    });
   }
 
   return { init, openForUserId, openGuest };

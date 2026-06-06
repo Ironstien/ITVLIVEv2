@@ -19,15 +19,20 @@ const ITVRoom = (() => {
       .replace(/"/g, '&quot;');
   }
 
-  function formatUserNameHtml(user = {}) {
+  function buildUserNameButtonHtml(user = {}) {
     const name = user.displayName || user.djName || 'Guest';
-    if (typeof ITVRank !== 'undefined') {
-      return ITVRank.formatChatName(name, {
-        level: user.level ?? 1,
-        staffRole: user.staffRole ?? null,
-      });
-    }
-    return escapeHtml(name);
+    const nameInner =
+      typeof ITVRank !== 'undefined'
+        ? ITVRank.formatChatName(name, {
+            level: user.level ?? 1,
+            staffRole: user.staffRole ?? null,
+            asButton: true,
+          })
+        : escapeHtml(name);
+    const userIdAttr = user.userId ? ` data-user-id="${escapeHtml(user.userId)}"` : '';
+    const levelAttr = ` data-level="${escapeHtml(user.level ?? 1)}"`;
+    const displayAttr = ` data-display-name="${escapeHtml(name)}"`;
+    return `<button type="button" class="chat-name-btn"${userIdAttr}${levelAttr}${displayAttr}>${nameInner}</button>`;
   }
 
   function findUserMeta(users, { socketId, userId, djName } = {}) {
@@ -388,7 +393,7 @@ const ITVRoom = (() => {
     }
     users.forEach((u) => {
       const li = document.createElement('li');
-      li.innerHTML = formatUserNameHtml(u);
+      li.innerHTML = buildUserNameButtonHtml(u);
       onlineEl.appendChild(li);
     });
   }
@@ -407,8 +412,8 @@ const ITVRoom = (() => {
           socketId: nowPlaying.socketId,
           userId: nowPlaying.userId,
           djName: nowPlaying.djName,
-        }) || { displayName: nowPlaying.djName, level: 1 };
-      nowLi.innerHTML = `Now: ${formatUserNameHtml(dj)}`;
+        }) || { displayName: nowPlaying.djName, userId: nowPlaying.userId, level: 1 };
+      nowLi.innerHTML = `Now: ${buildUserNameButtonHtml(dj)}`;
       queueEl.appendChild(nowLi);
     }
 
@@ -427,8 +432,8 @@ const ITVRoom = (() => {
           socketId: entry.socketId,
           userId: entry.userId,
           djName: entry.djName,
-        }) || { displayName: entry.djName, level: 1 };
-      li.innerHTML = `${escapeHtml(prefix)}${formatUserNameHtml(user)}`;
+        }) || { displayName: entry.djName, userId: entry.userId, level: 1 };
+      li.innerHTML = `${escapeHtml(prefix)}${buildUserNameButtonHtml(user)}`;
       queueEl.appendChild(li);
     });
   }

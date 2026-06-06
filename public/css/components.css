@@ -803,6 +803,11 @@
   font-weight: 600;
 }
 
+.online-list .chat-name-btn,
+.queue-list .chat-name-btn {
+  margin: 0;
+}
+
 .queue-now-playing {
   margin-bottom: 0.65rem;
   padding-bottom: 0.5rem;
