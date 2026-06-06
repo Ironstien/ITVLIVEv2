@@ -274,7 +274,8 @@ const ITVRoom = (() => {
   }
 
   function buildAlertsBannerTrack(trackEl, bodyEl, message) {
-    const safeMessage = escapeHtml(message);
+    const loopMessage = `${String(message || '').trimEnd()} `;
+    const safeMessage = escapeHtml(loopMessage);
     trackEl.innerHTML = `<span class="alerts-banner__text">${safeMessage}</span>`;
     const segmentWidth = trackEl.firstElementChild?.offsetWidth || 0;
     if (!segmentWidth) return;
