@@ -439,9 +439,9 @@ class Room {
   async _syncQueueEntryToActivePlaylist(entry) {
     if (!entry?.userId) return false;
     if (testDjAccount.isTestDjUserId(entry.userId)) {
-      if (!entry.playlistItems?.length) {
-        entry.playlistItems = getTestDjPlaylistItems();
-        entry.playlistId = TEST_DJ_PLAYLIST_ID;
+      entry.playlistItems = getTestDjPlaylistItems();
+      entry.playlistId = TEST_DJ_PLAYLIST_ID;
+      if (!Number.isFinite(entry.trackIndex) || entry.trackIndex >= entry.playlistItems.length) {
         entry.trackIndex = 0;
       }
       return entry.playlistItems.length > 0;
