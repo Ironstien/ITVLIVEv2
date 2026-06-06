@@ -106,6 +106,82 @@ const ITVRoom = (() => {
     if (title) title.textContent = nowPlaying.title || '—';
   }
 
+  let currentDjProfileUserId = null;
+  let currentDjProfileRequest = 0;
+  let currentDjProfileCache = null;
+
+  function formatDjNameHtml(dj) {
+    if (typeof ITVRank !== 'undefined') {
+      return ITVRank.formatChatName(dj.displayName, {
+        level: dj.level ?? 1,
+        staffRole: dj.staffRole ?? null,
+      });
+    }
+    return escapeHtml(dj.displayName);
+  }
+
+  function buildStageStatsSection(profile, { loading = false } = {}) {
+    const highlights = profile?.stageHighlights || {};
+    const most = loading ? '…' : highlights.mostPlayedSong?.title || '—';
+    const highest = loading ? '…' : highlights.highestVotedSong?.title || '—';
+    const earned = profile?.badgesEarned ?? profile?.badges?.length ?? 0;
+    const total = profile?.badgesTotal;
+    const badgesLine = loading ? '…' : total != null ? `${earned} of ${total}` : '—';
+
+    return `
+      <section class="current-dj-stats__section">
+        <h4 class="current-dj-stats__heading">Stage stats</h4>
+        <table class="my-data-table current-dj-stats__table">
+          <tr><th scope="row">Most played</th><td>${escapeHtml(most)}</td></tr>
+          <tr><th scope="row">Highest voted</th><td>${escapeHtml(highest)}</td></tr>
+          <tr><th scope="row">Badges</th><td>${escapeHtml(String(badgesLine))}</td></tr>
+        </table>
+      </section>
+    `;
+  }
+
+  function buildCurrentDjStatsHtml(dj, { stageStatsHtml = '' } = {}) {
+    const rankLine =
+      typeof ITVRank !== 'undefined'
+        ? ITVRank.formatLevelRankLine(dj.level ?? 1, { levelPrefix: 'Level ' })
+        : `Level ${dj.level ?? 1}`;
+    return `
+      <div class="current-dj-panel current-dj-panel--stats">
+        <h3 class="current-dj-stats__name">${formatDjNameHtml(dj)}</h3>
+        <p class="current-dj-stats__rank">${rankLine}</p>
+        ${stageStatsHtml}
+      </div>
+    `;
+  }
+
+  function updateCurrentDjStageStats(statsEl, dj, profile) {
+    const panel = statsEl.querySelector('.current-dj-panel--stats');
+    if (!panel) return;
+    panel.querySelector('.current-dj-stats__section')?.remove();
+    if (dj.userId) {
+      panel.insertAdjacentHTML('beforeend', buildStageStatsSection(profile));
+    }
+  }
+
+  async function loadCurrentDjStageStats(userId, statsEl, djSocketId) {
+    const requestId = ++currentDjProfileRequest;
+    try {
+      const res = await fetch(`/api/users/${encodeURIComponent(userId)}/profile`);
+      const data = await res.json();
+      if (requestId !== currentDjProfileRequest) return;
+      if (roomState?.nowPlaying?.socketId !== djSocketId) return;
+
+      const profile = res.ok && data.profile ? data.profile : null;
+      if (profile) {
+        currentDjProfileCache = { userId, profile };
+      }
+      updateCurrentDjStageStats(statsEl, { userId }, profile);
+    } catch (_err) {
+      if (requestId !== currentDjProfileRequest) return;
+      updateCurrentDjStageStats(statsEl, { userId }, null);
+    }
+  }
+
   function renderCurrentDj(state) {
     const avatarEl = $('current-dj-avatar');
     const statsEl = $('current-dj-stats');
@@ -116,6 +192,8 @@ const ITVRoom = (() => {
     const dj = djSocketId ? (state.users || []).find((u) => u.socketId === djSocketId) : null;
 
     if (!np?.videoId) {
+      currentDjProfileUserId = null;
+      currentDjProfileCache = null;
       avatarEl.innerHTML = '<p class="current-dj__empty muted">No DJ</p>';
       statsEl.innerHTML = '<p class="current-dj__empty muted">—</p>';
       return;
@@ -124,22 +202,30 @@ const ITVRoom = (() => {
     if (dj) {
       avatarEl.innerHTML = buildVinylRecord(dj, { spinning: true, onAir: true });
       syncCurrentDjSpin(true);
-      const rankLine =
-        typeof ITVRank !== 'undefined'
-          ? ITVRank.formatLevelRankLine(dj.level ?? 1, { levelPrefix: 'Level ' })
-          : `Level ${dj.level ?? 1}`;
-      statsEl.innerHTML = `
-        <div class="current-dj-panel current-dj-panel--stats">
-          <h3 class="current-dj-stats__name">${escapeHtml(dj.displayName)}</h3>
-          <p class="current-dj-stats__rank">${rankLine}</p>
-          <p class="current-dj-stats__track"><strong>Now:</strong> ${escapeHtml(np.title)}</p>
-        </div>
-      `;
+
+      let stageStatsHtml = '';
+      if (dj.userId) {
+        const cached = currentDjProfileCache?.userId === dj.userId ? currentDjProfileCache.profile : null;
+        stageStatsHtml = buildStageStatsSection(cached, { loading: !cached });
+      }
+      statsEl.innerHTML = buildCurrentDjStatsHtml(dj, { stageStatsHtml });
+
+      if (dj.userId) {
+        if (currentDjProfileUserId !== dj.userId) {
+          currentDjProfileUserId = dj.userId;
+          loadCurrentDjStageStats(dj.userId, statsEl, dj.socketId);
+        }
+      } else {
+        currentDjProfileUserId = null;
+        currentDjProfileCache = null;
+      }
     } else {
+      currentDjProfileUserId = null;
+      currentDjProfileCache = null;
       avatarEl.innerHTML = `<p class="current-dj__empty">${escapeHtml(np.djName || 'Stage')}</p>`;
       statsEl.innerHTML = `
         <div class="current-dj-panel current-dj-panel--stats">
-          <p class="current-dj-stats__track"><strong>Now:</strong> ${escapeHtml(np.title)}</p>
+          <h3 class="current-dj-stats__name">${escapeHtml(np.djName || 'Stage')}</h3>
         </div>
       `;
     }

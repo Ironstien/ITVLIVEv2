@@ -1259,6 +1259,55 @@
   text-align: right;
 }
 
+.song-data-sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.song-data-sort-header--numeric {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.song-data-sort-label {
+  line-height: 1.2;
+}
+
+.song-data-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--grey-muted);
+  cursor: pointer;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.song-data-sort-btn:hover {
+  color: var(--purple-bright);
+  border-color: var(--void-border);
+}
+
+.song-data-sort-btn--active {
+  color: var(--purple-bright);
+  border-color: var(--purple-dim);
+  background: rgba(155, 93, 229, 0.08);
+}
+
+.song-data-sort-icon {
+  display: block;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
 .my-data-sections {
   display: flex;
   flex-direction: column;
@@ -1366,7 +1415,8 @@
 }
 
 .vinyl-tooltip__rank .rank-name,
-.current-dj-stats__rank .rank-name {
+.current-dj-stats__rank .rank-name,
+.current-dj-stats__name .rank-name {
   font-weight: 600;
 }
 
