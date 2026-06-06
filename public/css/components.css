@@ -798,6 +798,11 @@
   border-bottom: 1px solid var(--void-border);
 }
 
+.online-list .rank-name,
+.queue-list .rank-name {
+  font-weight: 600;
+}
+
 .queue-now-playing {
   margin-bottom: 0.65rem;
   padding-bottom: 0.5rem;

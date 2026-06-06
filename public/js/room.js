@@ -19,6 +19,34 @@ const ITVRoom = (() => {
       .replace(/"/g, '&quot;');
   }
 
+  function formatUserNameHtml(user = {}) {
+    const name = user.displayName || user.djName || 'Guest';
+    if (typeof ITVRank !== 'undefined') {
+      return ITVRank.formatChatName(name, {
+        level: user.level ?? 1,
+        staffRole: user.staffRole ?? null,
+      });
+    }
+    return escapeHtml(name);
+  }
+
+  function findUserMeta(users, { socketId, userId, djName } = {}) {
+    if (!users?.length) return null;
+    if (socketId) {
+      const match = users.find((u) => u.socketId === socketId);
+      if (match) return match;
+    }
+    if (userId) {
+      const match = users.find((u) => u.userId === userId);
+      if (match) return match;
+    }
+    if (djName) {
+      const match = users.find((u) => u.displayName === djName);
+      if (match) return match;
+    }
+    return null;
+  }
+
   function buildVinylRecord(u, { spinning = false, onAir = false } = {}) {
     const labelContent = u.avatarUrl
       ? `<img class="vinyl-record__avatar" src="${escapeHtml(u.avatarUrl)}" alt="" loading="lazy" />`
@@ -360,8 +388,7 @@ const ITVRoom = (() => {
     }
     users.forEach((u) => {
       const li = document.createElement('li');
-      const you = u.socketId === mySocketId ? ' (you)' : '';
-      li.textContent = `${u.displayName}${you}`;
+      li.innerHTML = formatUserNameHtml(u);
       onlineEl.appendChild(li);
     });
   }
@@ -370,11 +397,18 @@ const ITVRoom = (() => {
     const queueEl = document.querySelector('[data-pane="queue"] .queue-list');
     if (!queueEl) return;
     queueEl.innerHTML = '';
+    const users = roomState?.users || [];
 
     if (nowPlaying?.videoId) {
       const nowLi = document.createElement('li');
       nowLi.className = 'queue-now-playing';
-      nowLi.textContent = `Now: ${nowPlaying.djName} — ${nowPlaying.title}`;
+      const dj =
+        findUserMeta(users, {
+          socketId: nowPlaying.socketId,
+          userId: nowPlaying.userId,
+          djName: nowPlaying.djName,
+        }) || { displayName: nowPlaying.djName, level: 1 };
+      nowLi.innerHTML = `Now: ${formatUserNameHtml(dj)}`;
       queueEl.appendChild(nowLi);
     }
 
@@ -388,9 +422,13 @@ const ITVRoom = (() => {
     globalQueue.forEach((entry) => {
       const li = document.createElement('li');
       const prefix = entry.position ? `${entry.position}. ` : '';
-      li.textContent = entry.title
-        ? `${prefix}${entry.djName} — ${entry.title}`
-        : `${prefix}${entry.djName}`;
+      const user =
+        findUserMeta(users, {
+          socketId: entry.socketId,
+          userId: entry.userId,
+          djName: entry.djName,
+        }) || { displayName: entry.djName, level: 1 };
+      li.innerHTML = `${escapeHtml(prefix)}${formatUserNameHtml(user)}`;
       queueEl.appendChild(li);
     });
   }
