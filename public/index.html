@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/css/variables.css" />
     <link rel="stylesheet" href="/css/layout-config.css?v=8" />
     <link rel="stylesheet" href="/css/layout.css?v=7" />
-    <link rel="stylesheet" href="/css/components.css?v=20" />
+    <link rel="stylesheet" href="/css/components.css?v=21" />
   </head>
   <body>
     <header class="site-nav">
@@ -60,6 +60,9 @@
         </li>
         <li class="hidden" id="nav-admin-panel-wrap">
           <button type="button" class="nav-link-btn" data-open-modal="admin-panel">Admin Panel</button>
+        </li>
+        <li class="hidden" id="nav-owner-wrap">
+          <button type="button" class="nav-link-btn" data-open-modal="owner">Owner</button>
         </li>
       </ul>
       </nav>
@@ -561,6 +564,16 @@
       </div>
     </div>
 
+    <div class="modal hidden" data-modal-id="owner" role="dialog" aria-labelledby="modal-owner-title" aria-hidden="true">
+      <div class="modal-card modal-card--wide">
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
+        <h2 id="modal-owner-title">Owner</h2>
+        <div class="modal-body" id="modal-owner-body">
+          <p class="modal-card__lead muted">Loading…</p>
+        </div>
+      </div>
+    </div>
+
     <div class="modal hidden" data-modal-id="playlist-new" role="dialog" aria-labelledby="modal-playlist-new-title" aria-hidden="true">
       <div class="modal-card modal-card--auth">
         <button type="button" class="modal-close" data-modal-close aria-label="Close">×</button>
@@ -706,6 +719,7 @@
     <script src="/js/staff-audit-ui.js?v=2"></script>
     <script src="/js/mod-tools.js?v=2"></script>
     <script src="/js/admin-panel.js?v=5"></script>
-    <script src="/js/app.js?v=28"></script>
+    <script src="/js/owner-panel.js?v=1"></script>
+    <script src="/js/app.js?v=29"></script>
   </body>
 </html>

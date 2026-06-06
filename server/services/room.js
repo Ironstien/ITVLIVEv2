@@ -645,6 +645,41 @@ class Room {
     return { ok: true, cleared };
   }
 
+  founderClearChat() {
+    const cleared = this.chat.length;
+    this.chat = [];
+    return { ok: true, cleared };
+  }
+
+  founderSkipNowPlaying() {
+    if (!this.nowPlaying) {
+      return { error: 'Nothing playing' };
+    }
+    const result = this._handleTrackEnd('founder-skip');
+    if (!result) {
+      return { error: 'Could not skip song' };
+    }
+    return {
+      ok: true,
+      skipped: {
+        videoId: result.finished.videoId,
+        djName: result.finished.djName,
+        userId: result.finished.userId,
+      },
+    };
+  }
+
+  founderResetDjQueue() {
+    const removed = this.djQueue.length;
+    this._clearDjQueue();
+    return { ok: true, removed };
+  }
+
+  founderStopPlayback() {
+    this._stopPlayback();
+    return { ok: true };
+  }
+
   skipAnySong(socketId) {
     const user = this.users.get(socketId);
     if (!user) return { error: 'Not connected' };

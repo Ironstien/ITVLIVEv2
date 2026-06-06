@@ -13,6 +13,7 @@
   const navModToolsWrap = document.getElementById('nav-mod-tools-wrap');
   const navAdminHelpWrap = document.getElementById('nav-admin-help-wrap');
   const navAdminPanelWrap = document.getElementById('nav-admin-panel-wrap');
+  const navOwnerWrap = document.getElementById('nav-owner-wrap');
   const chatForm = document.getElementById('chat-form');
   const chatInput = document.getElementById('chat-input');
   const queueBtn = document.querySelector('.btn-queue-action');
@@ -147,6 +148,12 @@
     }
     if (navAdminPanelWrap) {
       navAdminPanelWrap.classList.toggle('hidden', !isAdmin(accountUser));
+    }
+    if (typeof ITVOwnerPanel !== 'undefined') {
+      ITVOwnerPanel.updateFounderNav(navOwnerWrap);
+      ITVOwnerPanel.setContext({ user: accountUser });
+    } else if (navOwnerWrap) {
+      navOwnerWrap.classList.add('hidden');
     }
     if (typeof ITVModTools !== 'undefined') {
       ITVModTools.setContext({ user: accountUser, activeSocket });
@@ -376,6 +383,22 @@
       onAccountRefresh: async () => {
         const user = await ITVAuth.fetchMe();
         if (user) await setAccountUser(user);
+      },
+    });
+  }
+  if (typeof ITVOwnerPanel !== 'undefined') {
+    ITVOwnerPanel.init({
+      onToast: toast,
+      onAccountRefresh: async () => {
+        const user = await ITVAuth.fetchMe();
+        if (user) await setAccountUser(user);
+      },
+      onNuclearWipe: async () => {
+        ITVAuth.logout();
+        await setAccountUser(null);
+        ITVModal.close('owner');
+        await reconnectSocket();
+        ITVModal.open('login');
       },
     });
   }

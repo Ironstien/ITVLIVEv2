@@ -3,7 +3,11 @@ const { User } = require('../models');
 const { isDbConnected } = require('../config/db');
 const { signToken } = require('../lib/jwt');
 const { getLevelForXp, MAX_LEVEL } = require('../config/levels');
-const { ensureFounderAdmin, sanitizeStaffRole } = require('../config/founderAdmins');
+const {
+  ensureFounderAdmin,
+  sanitizeStaffRole,
+  matchesFounderAdmin,
+} = require('../config/founderAdmins');
 const { evaluateAndGrantBadges } = require('./badges');
 const {
   isReservedTestDjEmail,
@@ -34,6 +38,7 @@ function toPublicUser(doc) {
     updatedAt: u.updatedAt,
     isBanned: Boolean(u.bannedAt),
     banReason: u.banReason || '',
+    isFounder: matchesFounderAdmin(u),
   };
 }
 

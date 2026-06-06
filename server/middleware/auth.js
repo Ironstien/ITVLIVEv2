@@ -2,6 +2,7 @@ const { verifyToken, isJwtConfigured } = require('../lib/jwt');
 const { findUserById } = require('../services/auth');
 const { isDbConnected } = require('../config/db');
 const { isModOrAbove, isAdmin } = require('../config/permissions');
+const { matchesFounderAdmin } = require('../config/founderAdmins');
 
 function extractBearerToken(req) {
   const header = req.headers.authorization;
@@ -67,6 +68,18 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
+async function requireFounder(req, res, next) {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+  if (!matchesFounderAdmin(req.user)) {
+    res.status(403).json({ error: 'Founder access required' });
+    return;
+  }
+  next();
+}
+
 async function optionalAuth(req, _res, next) {
   req.user = null;
   if (!isJwtConfigured() || !isDbConnected()) {
@@ -90,4 +103,11 @@ async function optionalAuth(req, _res, next) {
   next();
 }
 
-module.exports = { requireAuth, requireStaff, requireAdmin, optionalAuth, extractBearerToken };
+module.exports = {
+  requireAuth,
+  requireStaff,
+  requireAdmin,
+  requireFounder,
+  optionalAuth,
+  extractBearerToken,
+};

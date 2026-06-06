@@ -41,6 +41,7 @@ const authRoutes = require('./routes/auth');
 const playlistRoutes = require('./routes/playlists');
 const songRoutes = require('./routes/songs');
 const adminRoutes = require('./routes/admin');
+const founderRoutes = require('./routes/founder');
 const helpRoutes = require('./routes/help');
 const usersRoutes = require('./routes/users');
 const badgesRoutes = require('./routes/badges');
@@ -51,6 +52,7 @@ app.use('/api/badges', badgesRoutes);
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/songs', songRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/founder', founderRoutes);
 app.use('/api/help', helpRoutes);
 app.use('/api/bug-reports', bugReportsRoutes);
 

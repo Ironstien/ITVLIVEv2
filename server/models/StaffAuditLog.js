@@ -20,6 +20,12 @@ const STAFF_ACTIONS = [
   'unblockVideo',
   'accountBan',
   'unbanAccount',
+  'founderResetSongs',
+  'founderResetVotes',
+  'founderResetPlaySessions',
+  'founderResetXpTransactions',
+  'founderResetUserProgress',
+  'founderNuclearWipeRequested',
 ];
 
 const staffAuditLogSchema = new mongoose.Schema(
