@@ -35,7 +35,7 @@
   --player-stage-gap-min: 0.65rem;
 
   /* Fixed height of the open Pit strip (centre column) — hugs filmstrip */
-  --pit-height-open: 118px;
+  --pit-height-open: 190px;
   --pit-height: var(--pit-height-open);
 
   /* Viewport height at or below which the pit auto-collapses (layout.js) */
@@ -49,16 +49,16 @@
 
   /* 35mm filmstrip geometry */
   --pit-film-stock: #1a1a1e;
-  --pit-perf-band: 8px;
-  --pit-perf-pitch: 15px;
-  --pit-perf-w: 8px;
-  --pit-perf-h: 5px;
-  --pit-frame-width: 92px;
-  --pit-frame-height: 52px;
-  --pit-frame-gap: 3px;
-  --pit-frame-radius: 4px;
-  --pit-frames-padding-y: 3px;
-  --pit-frames-padding-x: 6px;
+  --pit-perf-band: 16px;
+  --pit-perf-pitch: 30px;
+  --pit-perf-w: 16px;
+  --pit-perf-h: 10px;
+  --pit-frame-width: 184px;
+  --pit-frame-height: 104px;
+  --pit-frame-gap: 6px;
+  --pit-frame-radius: 8px;
+  --pit-frames-padding-y: 6px;
+  --pit-frames-padding-x: 12px;
 
   /* Max tracks in pit lineup (server + client cap) */
   --pit-lineup-max: 16;
@@ -89,16 +89,18 @@
     --mobile-panel-expanded-min: min(45vh, 320px);
     --player-stage-gap-min: 0.4rem;
     --alerts-banner-height: 2rem;
-    --pit-height-open: 108px;
+    --pit-height-open: 168px;
     --pit-auto-collapse-max-height: 680px;
     --pit-inset: 0.15rem;
     --pit-header-height: 1.5rem;
-    --pit-frame-width: 76px;
-    --pit-frame-height: 43px;
-    --pit-perf-band: 7px;
-    --pit-perf-pitch: 13px;
-    --pit-perf-w: 7px;
-    --pit-perf-h: 4px;
+    --pit-frame-width: 152px;
+    --pit-frame-height: 86px;
+    --pit-perf-band: 14px;
+    --pit-perf-pitch: 26px;
+    --pit-perf-w: 14px;
+    --pit-perf-h: 8px;
+    --pit-frames-padding-y: 5px;
+    --pit-frames-padding-x: 10px;
     --vinyl-disc-max: 48px;
     --stage-gap: 0.35rem;
     --stage-padding: 0.35rem;
