@@ -374,13 +374,20 @@ const ITVRoom = (() => {
     const myUsername = typeof ITVAppPrefs !== 'undefined' ? ITVAppPrefs.getMyUsername() : '';
 
     chat.forEach((m) => {
-      if (m.kind === 'badge-earned' && prefs.chatHideSystem) return;
+      if ((m.kind === 'badge-earned' || m.kind === 'level-up') && prefs.chatHideSystem) return;
 
       const div = document.createElement('div');
       if (m.kind === 'badge-earned') {
         div.className = 'chat-msg chat-msg--badge-earned chat-msg--system';
         if (m.id != null) div.dataset.messageId = String(m.id);
         div.innerHTML = `<span class="chat-badge-earned">${escapeHtml(m.text || '')}</span>`;
+        chatEl.appendChild(div);
+        return;
+      }
+      if (m.kind === 'level-up') {
+        div.className = 'chat-msg chat-msg--level-up chat-msg--system';
+        if (m.id != null) div.dataset.messageId = String(m.id);
+        div.innerHTML = `<span class="chat-level-up">${escapeHtml(m.text || '')}</span>`;
         chatEl.appendChild(div);
         return;
       }

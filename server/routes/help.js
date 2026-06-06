@@ -8,9 +8,49 @@ const {
   STAFF_ROLE_COLORS,
   STAFF_ROLE_LABELS,
 } = require('../config/levels');
+const { isDbConnected } = require('../config/db');
+const { TEST_DJ_DISPLAY_NAME } = require('../config/testDj');
 const { LISTENER_XP, DJ_XP, VOTE_XP } = require('../services/session');
 
 const router = express.Router();
+
+const RESIDENT_DJ_COLOR = '#7b2cbf';
+
+async function buildCurrentStaff() {
+  const list = [];
+
+  if (isDbConnected()) {
+    const { User } = require('../models');
+    const staffUsers = await User.find({
+      staffRole: { $in: ['mod', 'admin'] },
+      isSystemAccount: { $ne: true },
+    })
+      .select('username staffRole')
+      .sort({ staffRole: -1, username: 1 })
+      .lean();
+
+    for (const user of staffUsers) {
+      const role = user.staffRole;
+      list.push({
+        name: user.username,
+        role: STAFF_ROLE_LABELS[role] || role,
+        roleId: role,
+        color: STAFF_ROLE_COLORS[role] || STAFF_ROLE_COLORS.mod,
+      });
+    }
+  }
+
+  list.push({
+    name: TEST_DJ_DISPLAY_NAME,
+    role: 'Resident DJ',
+    roleId: 'resident',
+    color: RESIDENT_DJ_COLOR,
+    summary:
+      'Keeps music on the stage when the DJ queue is quiet. You may see him in chat, the online list, and as the current DJ.',
+  });
+
+  return list;
+}
 
 function buildRankTiers() {
   const tiers = [];
@@ -50,37 +90,43 @@ function buildLevels() {
   return levels;
 }
 
-router.get('/progression', (_req, res) => {
-  res.json({
-    maxLevel: MAX_LEVEL,
-    minVoteLevel: MIN_VOTE_LEVEL,
-    xpRewards: {
-      listen: LISTENER_XP,
-      dj: DJ_XP,
-      vote: VOTE_XP,
-    },
-    rankTiers: buildRankTiers(),
-    levels: buildLevels(),
-    staffRoles: [
-      {
-        id: 'mod',
-        label: STAFF_ROLE_LABELS.mod,
-        color: STAFF_ROLE_COLORS.mod,
-        summary: 'Keeps chat and the stage civil. Uses Mod Tools on the live room.',
+router.get('/progression', async (_req, res) => {
+  try {
+    res.json({
+      maxLevel: MAX_LEVEL,
+      minVoteLevel: MIN_VOTE_LEVEL,
+      xpRewards: {
+        listen: LISTENER_XP,
+        dj: DJ_XP,
+        vote: VOTE_XP,
       },
-      {
-        id: 'admin',
-        label: STAFF_ROLE_LABELS.admin,
-        color: STAFF_ROLE_COLORS.admin,
-        summary: 'Full platform control. Uses Admin Panel plus everything mods can do.',
+      rankTiers: buildRankTiers(),
+      levels: buildLevels(),
+      staffRoles: [
+        {
+          id: 'mod',
+          label: STAFF_ROLE_LABELS.mod,
+          color: STAFF_ROLE_COLORS.mod,
+          summary: 'Keeps chat and the stage civil. Uses Mod Tools on the live room.',
+        },
+        {
+          id: 'admin',
+          label: STAFF_ROLE_LABELS.admin,
+          color: STAFF_ROLE_COLORS.admin,
+          summary: 'Full platform control. Uses Admin Panel plus everything mods can do.',
+        },
+      ],
+      currentStaff: await buildCurrentStaff(),
+      badges: {
+        intro:
+          'Badges are achievements you earn automatically by listening, voting, DJing, playlists, chat, and leveling up. The full catalog appears in My Data (locked until earned). Click a registered username in chat to see their earned badges.',
+        placeholder: null,
       },
-    ],
-    badges: {
-      intro:
-        'Badges are achievements you earn automatically by listening, voting, DJing, playlists, chat, and leveling up. The full catalog appears in My Data (locked until earned). Click a registered username in chat to see their earned badges.',
-      placeholder: null,
-    },
-  });
+    });
+  } catch (err) {
+    console.error('[help] progression failed:', err);
+    res.status(500).json({ error: 'Could not load help data' });
+  }
 });
 
 module.exports = router;

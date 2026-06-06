@@ -87,14 +87,8 @@
     const suffixText = suffix ? ` · ${esc(suffix)}` : '';
     const rankPart =
       typeof ITVRank !== 'undefined' ? ITVRank.formatRankForLevel(level) : esc(getRankFallbackName(level));
-    const staffHtml =
-      user.staffRole && typeof ITVRank !== 'undefined'
-        ? ` · ${ITVRank.formatStaffRole(user.staffRole)}`
-        : user.staffRole
-          ? ` · ${esc(user.staffRole)}`
-          : '';
     const usernameBtn = `<button type="button" class="nav-user-name-btn" id="nav-user-settings-btn">${esc(user.username)}</button>`;
-    return `${usernameBtn} · Lv.${level} · ${rankPart} · ${xp} XP${staffHtml}${suffixText}`;
+    return `${usernameBtn} · Lv.${level} · ${rankPart} · ${xp} XP${suffixText}`;
   }
 
   function formatGuestNavHtml(name, suffix = '') {

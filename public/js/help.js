@@ -121,7 +121,30 @@ const ITVHelp = (() => {
           )
           .join('')}
       </ul>
-      <p class="help-note muted"><strong>Level</strong> is earned through XP. <strong>Staff roles</strong> are assigned by admins — they are separate from your level rank.</p>`;
+      <p class="help-note muted"><strong>Level</strong> is earned through XP. <strong>Staff roles</strong> are assigned by admins — they are separate from your level rank. Staff usernames use their <strong>level rank colour</strong> in chat and lists; click a username to see their staff role in the profile popup.</p>`;
+  }
+
+  function renderCurrentStaff(data) {
+    const members = data.currentStaff || [];
+    if (!members.length) {
+      return '<p class="help-note muted">No staff listed yet.</p>';
+    }
+    return `
+      <ul class="help-staff-roles help-staff-roles--roster">
+        ${members
+          .map(
+            (member) => `
+          <li class="help-staff-role help-staff-role--roster">
+            <div class="help-staff-role__header">
+              <span class="help-staff-role__name">${escapeHtml(member.name)}</span>
+              <span class="help-staff-role__label" style="color:${escapeHtml(member.color)}">${escapeHtml(member.role)}</span>
+            </div>
+            ${member.summary ? `<p>${escapeHtml(member.summary)}</p>` : ''}
+          </li>`
+          )
+          .join('')}
+      </ul>
+      <p class="help-note muted">Need help on stage? Mention a mod or admin in chat, or ask in the room.</p>`;
   }
 
   function renderBadges(data) {
@@ -236,6 +259,7 @@ Another Title https://youtu.be/VIDEO_ID</pre>
           <a href="#help-ranks">User ranks</a>
           <a href="#help-levels">Level table</a>
           <a href="#help-staff">Staff roles</a>
+          <a href="#help-current-staff">Current staff</a>
           <a href="#help-badges">Badges</a>
         </nav>
 
@@ -270,6 +294,12 @@ Another Title https://youtu.be/VIDEO_ID</pre>
         <section class="help-section" id="help-staff">
           <h3 class="help-section__title">Staff roles</h3>
           ${renderStaffRoles(data)}
+        </section>
+
+        <section class="help-section" id="help-current-staff">
+          <h3 class="help-section__title">Current staff</h3>
+          <p>People who help run the stage. The list updates from assigned mod and admin accounts, plus our resident DJ.</p>
+          ${renderCurrentStaff(data)}
         </section>
 
         <section class="help-section" id="help-badges">

@@ -955,6 +955,28 @@ class Room {
     return msg;
   }
 
+  /**
+   * System chat line when a user levels up (visible to the whole room).
+   * @param {string} displayName
+   * @param {number} level
+   */
+  addLevelUpChat(displayName, level) {
+    const name = String(displayName || 'Someone').trim() || 'Someone';
+    const lvl = Math.max(1, Math.floor(Number(level) || 1));
+    this._chatId += 1;
+    const msg = {
+      id: this._chatId,
+      kind: 'level-up',
+      displayName: name,
+      level: lvl,
+      text: `Ding!!! Grats ${name} on level ${lvl}!!!`,
+      at: Date.now(),
+    };
+    this.chat.push(msg);
+    if (this.chat.length > MAX_CHAT) this.chat.shift();
+    return msg;
+  }
+
   async joinQueue(socketId) {
     const user = this.users.get(socketId);
     if (!user) return { error: 'Not connected' };

@@ -124,14 +124,6 @@ const ITVUserSettings = (() => {
 
   function renderLoggedIn(user) {
     const prefs = typeof ITVAppPrefs !== 'undefined' ? ITVAppPrefs.getAll() : {};
-    const isStaff = user.staffRole === 'mod' || user.staffRole === 'admin';
-    const staffRoleHtml =
-      isStaff && typeof ITVRank !== 'undefined'
-        ? ITVRank.formatStaffRole(user.staffRole)
-        : isStaff
-          ? escapeHtml(user.staffRole)
-          : '';
-
     let customSaying = user.customSaying || '';
     if (customSaying && user.email && customSaying.toLowerCase() === String(user.email).toLowerCase()) {
       customSaying = '';
@@ -189,7 +181,7 @@ const ITVUserSettings = (() => {
         <div class="user-settings__toggles">
           ${renderToggle('settings-chat-timestamps', 'Show chat timestamps', prefs.chatTimestamps)}
           ${renderToggle('settings-chat-compact', 'Compact chat', prefs.chatCompact, 'Less vertical spacing between messages')}
-          ${renderToggle('settings-chat-hide-system', 'Hide system messages', prefs.chatHideSystem, 'Hides badge-earned announcements in chat')}
+          ${renderToggle('settings-chat-hide-system', 'Hide system messages', prefs.chatHideSystem, 'Hides badge and level-up announcements in chat')}
           ${renderToggle('settings-chat-mention', 'Highlight @mentions', prefs.chatMentionHighlight, 'When a message @mentions your username')}
           ${renderToggle('settings-badge-toasts', 'Badge earned popup', prefs.badgeToasts, 'Show celebration modal when you earn a badge')}
         </div>
@@ -207,14 +199,6 @@ const ITVUserSettings = (() => {
         </table>
       `
       )}
-      ${
-        isStaff
-          ? renderSection(
-              'Staff',
-              `<p class="user-settings__staff-role">${staffRoleHtml}</p>`
-            )
-          : ''
-      }
       ${renderSection(
         'Security',
         `

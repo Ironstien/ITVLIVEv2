@@ -601,6 +601,22 @@
   color: var(--purple-light, #c9b3e8);
 }
 
+.chat-msg--level-up {
+  justify-content: center;
+  text-align: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.28);
+}
+
+.chat-msg--level-up .chat-level-up {
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--rank-legend);
+}
+
 .badge-preview {
   position: fixed;
   z-index: 200;
@@ -1928,6 +1944,24 @@
   margin: 0.35rem 0 0;
   font-size: 0.8rem;
   color: var(--grey-muted);
+}
+
+.help-staff-role__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+}
+
+.help-staff-role__name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--grey-text);
+}
+
+.help-staff-roles--roster .help-staff-role--roster {
+  margin-bottom: 0.55rem;
 }
 
 .help-badges-placeholder {

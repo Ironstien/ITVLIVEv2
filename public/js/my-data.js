@@ -82,7 +82,7 @@ const ITVMyData = (() => {
   async function renderData(data) {
     if (!bodyEl) return;
 
-    const { account, progression, staff, profile, stats, playlists, xpHistory, voteHistory, badges } = data;
+    const { account, progression, profile, stats, playlists, xpHistory, voteHistory, badges } = data;
 
     const accountHtml = renderSection(
       'Account',
@@ -100,11 +100,6 @@ const ITVMyData = (() => {
         ? ITVRank.formatRankName(progression.rank)
         : formatValue(progression.rank);
 
-    const staffRoleValue =
-      staff.staffRole && typeof ITVRank !== 'undefined'
-        ? ITVRank.formatStaffRole(staff.staffRole)
-        : formatValue(staff.staffRole || 'None');
-
     const progressionHtml = renderSection(
       'Progression',
       [
@@ -114,8 +109,6 @@ const ITVMyData = (() => {
         renderRow('XP to next level', formatValue(progression.xpToNextLevel)),
       ].join('')
     );
-
-    const staffHtml = renderSection('Staff', [renderRow('Staff role', staffRoleValue)].join(''));
 
     let badgeGridHtml = '<p class="badge-grid-empty muted">Could not load badge catalog.</p>';
     if (typeof ITVBadges !== 'undefined') {
@@ -227,7 +220,6 @@ const ITVMyData = (() => {
       <div class="my-data-sections">
         ${accountHtml}
         ${progressionHtml}
-        ${staffHtml}
         ${badgesHtml}
         ${profileHtml}
         ${statsHtml}

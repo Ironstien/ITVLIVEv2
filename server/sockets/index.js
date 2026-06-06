@@ -6,7 +6,7 @@ const { can } = require('../config/permissions');
 const { verifyToken, isJwtConfigured } = require('../lib/jwt');
 const { isDbConnected } = require('../config/db');
 const { toSocketUser, toPublicUser, findUserDocumentById, assertUserNotBanned } = require('../services/auth');
-const { isSystemAccountUser } = require('../services/testDjAccount');
+const { isSystemAccountUser, isTestDjUserId } = require('../services/testDjAccount');
 const testDjChat = require('../services/testDjChat');
 const { logStaffAction } = require('../services/staffAudit');
 const { SessionRegistry } = require('./sessionRegistry');
@@ -80,8 +80,20 @@ async function logModAction(socket, action, result, extraDetails = null) {
   });
 }
 
+function announceLevelUp(io, progress) {
+  if (!io || !progress?.leveledUp || !progress.userId || progress.level == null) return;
+  if (isTestDjUserId(progress.userId)) return;
+
+  resolveDisplayNameForUserId(progress.userId).then((displayName) => {
+    const name = displayName || 'Someone';
+    room.addLevelUpChat(name, progress.level);
+    broadcastRoomState(io, 'level-up');
+  });
+}
+
 function emitUserProgress(io, progress) {
   if (!io || !progress?.userId) return;
+  announceLevelUp(io, progress);
   const payload = { ...progress };
   if (Array.isArray(progress.newBadges) && progress.newBadges.length && !progress.badgeUnlocks) {
     payload.badgeUnlocks = resolveBadgeDetails(progress.newBadges);
