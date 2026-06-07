@@ -6,11 +6,13 @@ const {
   TEST_DJ_SOCKET_ID,
   TEST_DJ_DISPLAY_NAME,
   TEST_DJ_AVATAR_URL,
-  TEST_DJ_PLAYLIST_ID,
-  getTestDjPlaylistItems,
 } = require('../config/testDj');
 const testDjAccount = require('./testDjAccount');
 const testDjChat = require('./testDjChat');
+const {
+  getTestDjPlaylistItems,
+  rotateTestDjPlayedItemToBottom,
+} = require('./testDjPlaylist');
 const { parseYoutubeId, fetchYoutubeMeta } = require('./youtube');
 const {
   getActivePlaylist,
@@ -129,7 +131,10 @@ class Room {
     await this._refreshTestDjPresence();
     const virtual = this.users.get(TEST_DJ_SOCKET_ID);
     const profile = await testDjAccount.loadTestDjProfile();
-    const items = getTestDjPlaylistItems();
+    const loaded = await getTestDjPlaylistItems();
+    if (!loaded.items.length) {
+      return { ensured: false, reason: 'no_source_playlist' };
+    }
 
     const entry = {
       queueEntryId: this._newQueueEntryId(),
@@ -140,9 +145,9 @@ class Room {
       level: profile?.level ?? 1,
       staffRole: null,
       badges: Array.isArray(profile?.badges) ? profile.badges : [],
-      playlistId: TEST_DJ_PLAYLIST_ID,
+      playlistId: loaded.playlistId,
       trackIndex: 0,
-      playlistItems: items,
+      playlistItems: loaded.items,
       joinedAt: Date.now(),
     };
 
@@ -458,22 +463,60 @@ class Room {
   }
 
   /**
+   * Mirror Bob's queue entry from the owner's Bobsplaylist in MongoDB.
+   * @param {object} entry
+   * @param {{ anchorYoutubeId?: string|null }} [opts]
+   */
+  async _loadBobPlaylistIntoEntry(entry, { anchorYoutubeId = null } = {}) {
+    const loaded = await getTestDjPlaylistItems();
+    if (!loaded.items?.length) return false;
+
+    const prevId =
+      anchorYoutubeId || entry.playlistItems?.[entry.trackIndex]?.youtubeId || null;
+
+    entry.playlistItems = loaded.items;
+    entry.playlistId = loaded.playlistId;
+
+    if (prevId) {
+      const idx = loaded.items.findIndex((item) => item.youtubeId === prevId);
+      entry.trackIndex = idx === -1 ? 0 : idx;
+    } else if (
+      !Number.isFinite(entry.trackIndex) ||
+      entry.trackIndex >= entry.playlistItems.length
+    ) {
+      entry.trackIndex = 0;
+    }
+
+    return true;
+  }
+
+  /** Refresh Bob's in-room queue when the source Bobsplaylist is edited. */
+  async syncTestDjQueueFromSource() {
+    if (!platform.isTestDjQueueEnabled()) return { ok: false, reason: 'disabled' };
+
+    const bobId = testDjAccount.getTestDjUserId();
+    if (!bobId) return { ok: false, reason: 'no_bob' };
+
+    const entry = this._findQueueEntryByUserId(bobId);
+    if (!entry) return { ok: true, updated: false };
+
+    const anchor =
+      this.nowPlaying?.userId === bobId
+        ? this.nowPlaying.videoId
+        : entry.playlistItems?.[entry.trackIndex]?.youtubeId || null;
+
+    const updated = await this._loadBobPlaylistIntoEntry(entry, { anchorYoutubeId: anchor });
+    return { ok: true, updated };
+  }
+
+  /**
    * Reload a queue entry from the user's current active playlist (e.g. after they switch playlists).
    * @param {object} entry
    */
   async _syncQueueEntryToActivePlaylist(entry) {
     if (!entry?.userId) return false;
     if (testDjAccount.isTestDjUserId(entry.userId)) {
-      // Keep in-memory rotation between tracks; only load from file when empty.
-      if (!entry.playlistItems?.length) {
-        entry.playlistItems = getTestDjPlaylistItems();
-        entry.trackIndex = 0;
-      }
-      entry.playlistId = TEST_DJ_PLAYLIST_ID;
-      if (!Number.isFinite(entry.trackIndex) || entry.trackIndex >= entry.playlistItems.length) {
-        entry.trackIndex = 0;
-      }
-      return entry.playlistItems.length > 0;
+      return this._loadBobPlaylistIntoEntry(entry);
     }
     if (!isDbConnected()) {
       return Boolean(entry.playlistItems?.length);
@@ -1379,14 +1422,29 @@ class Room {
     const played = this._resolvePlayedQueueTrack(entry, finished);
     if (!played) {
       if (isBob && platform.isTestDjQueueEnabled()) {
-        entry.playlistItems = getTestDjPlaylistItems();
-        entry.trackIndex = 0;
+        await this._loadBobPlaylistIntoEntry(entry);
       } else {
         this._removeQueueEntryByUserId(entry.userId);
         return;
       }
     } else if (isBob) {
-      this._rotatePlaylistItemsInMemory(entry, played);
+      if (played.id && isDbConnected()) {
+        try {
+          const rotated = await rotateTestDjPlayedItemToBottom(played.id);
+          if (rotated?.items?.length) {
+            entry.playlistItems = rotated.items;
+            entry.playlistId = rotated.playlistId;
+            entry.trackIndex = 0;
+          } else {
+            this._rotatePlaylistItemsInMemory(entry, played);
+          }
+        } catch (err) {
+          console.warn('[room] failed to persist Bob playlist rotation:', err.message);
+          this._rotatePlaylistItemsInMemory(entry, played);
+        }
+      } else {
+        this._rotatePlaylistItemsInMemory(entry, played);
+      }
     } else if (played.id && isDbConnected()) {
       try {
         entry.playlistItems = await movePlayedItemToBottom(
@@ -1405,8 +1463,7 @@ class Room {
 
     if (!entry.playlistItems.length) {
       if (isBob && platform.isTestDjQueueEnabled()) {
-        entry.playlistItems = getTestDjPlaylistItems();
-        entry.trackIndex = 0;
+        await this._loadBobPlaylistIntoEntry(entry);
       } else {
         this._removeQueueEntryByUserId(entry.userId);
         return;
@@ -1453,8 +1510,7 @@ class Room {
       const synced = await this._syncQueueEntryToActivePlaylist(entry);
       if (!synced) {
         if (isBob && platform.isTestDjQueueEnabled()) {
-          entry.playlistItems = getTestDjPlaylistItems();
-          entry.trackIndex = 0;
+          await this._loadBobPlaylistIntoEntry(entry);
         } else {
           this.djQueue.shift();
           this._syncUserInQueueFlags(entry.userId, false);
@@ -1466,9 +1522,8 @@ class Room {
       let track = entry.playlistItems[entry.trackIndex];
       if (!track) {
         if (isBob && platform.isTestDjQueueEnabled()) {
-          entry.playlistItems = getTestDjPlaylistItems();
-          entry.trackIndex = 0;
-          track = entry.playlistItems[0];
+          await this._loadBobPlaylistIntoEntry(entry);
+          track = entry.playlistItems[entry.trackIndex];
         } else {
           this.djQueue.shift();
           this._syncUserInQueueFlags(entry.userId, false);

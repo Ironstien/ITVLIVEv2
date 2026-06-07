@@ -17,8 +17,18 @@ const {
   importPlaylist,
   exportPlaylist,
 } = require('../services/playlist');
+const { isTestDjSourcePlaylist } = require('../services/testDjPlaylist');
 
 const router = express.Router();
+
+async function maybeSyncBobFromPlaylistEdit(req, playlistId) {
+  if (!(await isTestDjSourcePlaylist(req.user.id, playlistId))) return;
+  const result = await room.syncTestDjQueueFromSource();
+  const io = req.app.get('io');
+  if (io && result.updated) {
+    io.emit('room:state', room.getRoomState());
+  }
+}
 
 router.use(requireAuth);
 
@@ -108,6 +118,7 @@ router.post('/:id/items', async (req, res) => {
   if (denyPlaylist(req, res)) return;
   try {
     const item = await addItem(req.user.id, req.params.id, req.body?.url, req.body?.title);
+    await maybeSyncBobFromPlaylistEdit(req, req.params.id);
     res.status(201).json({ ok: true, item });
   } catch (err) {
     handleError(res, err);
@@ -120,6 +131,7 @@ router.patch('/:id/items/:itemId', async (req, res) => {
     const item = await updateItem(req.user.id, req.params.id, req.params.itemId, {
       title: req.body?.title,
     });
+    await maybeSyncBobFromPlaylistEdit(req, req.params.id);
     res.json({ ok: true, item });
   } catch (err) {
     handleError(res, err);
@@ -130,6 +142,7 @@ router.delete('/:id/items/:itemId', async (req, res) => {
   if (denyPlaylist(req, res)) return;
   try {
     await deleteItem(req.user.id, req.params.id, req.params.itemId);
+    await maybeSyncBobFromPlaylistEdit(req, req.params.id);
     res.json({ ok: true });
   } catch (err) {
     handleError(res, err);
@@ -140,6 +153,7 @@ router.put('/:id/items/reorder', async (req, res) => {
   if (denyPlaylist(req, res)) return;
   try {
     const items = await reorderItems(req.user.id, req.params.id, req.body?.order);
+    await maybeSyncBobFromPlaylistEdit(req, req.params.id);
     res.json({ ok: true, items });
   } catch (err) {
     handleError(res, err);
@@ -151,6 +165,7 @@ router.post('/:id/shuffle', async (req, res) => {
   try {
     const items = await shufflePlaylist(req.user.id, req.params.id);
     const data = await getPlaylistWithItems(req.user.id, req.params.id);
+    await maybeSyncBobFromPlaylistEdit(req, req.params.id);
     res.json({ ok: true, items, playlist: data.playlist });
   } catch (err) {
     handleError(res, err);
@@ -163,6 +178,7 @@ router.post('/:id/import', async (req, res) => {
     const mode = req.body?.mode === 'replace' ? 'replace' : 'append';
     const result = await importPlaylist(req.user.id, req.params.id, req.body?.text, mode);
     const data = await getPlaylistWithItems(req.user.id, req.params.id);
+    await maybeSyncBobFromPlaylistEdit(req, req.params.id);
     res.json({ ok: true, ...result, playlist: data.playlist, items: data.items });
   } catch (err) {
     handleError(res, err);
