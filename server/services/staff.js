@@ -405,9 +405,17 @@ async function updatePlatform(actor, updates) {
   const result = await platform.updatePlatformSettings(updates);
   if (result.error) return result;
 
+  const testDjChanged =
+    (updates.testDjEnabled !== undefined &&
+      previous.testDjEnabled !== result.settings.testDjEnabled) ||
+    (updates.testDjQueueEnabled !== undefined &&
+      previous.testDjQueueEnabled !== result.settings.testDjQueueEnabled) ||
+    (updates.testDjChatEnabled !== undefined &&
+      previous.testDjChatEnabled !== result.settings.testDjChatEnabled);
+
   let testDjRoom = null;
-  if (updates.testDjEnabled !== undefined && previous.testDjEnabled !== result.settings.testDjEnabled) {
-    testDjRoom = await room.applyTestDjSetting(result.settings.testDjEnabled);
+  if (testDjChanged) {
+    testDjRoom = await room.applyTestDjSettings();
   }
 
   await logStaffAction({
@@ -421,6 +429,10 @@ async function updatePlatform(actor, updates) {
       alertsBannerMessage: result.settings.alertsBannerMessage,
       previousTestDjEnabled: previous.testDjEnabled,
       testDjEnabled: result.settings.testDjEnabled,
+      previousTestDjQueueEnabled: previous.testDjQueueEnabled,
+      testDjQueueEnabled: result.settings.testDjQueueEnabled,
+      previousTestDjChatEnabled: previous.testDjChatEnabled,
+      testDjChatEnabled: result.settings.testDjChatEnabled,
       previousXpMultiplier: previous.xpMultiplier,
       xpMultiplier: result.settings.xpMultiplier,
     },

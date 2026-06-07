@@ -7,12 +7,14 @@ const SETTINGS_KEY = 'global';
 
 /** @type {Set<string>} */
 let blockedVideoIds = new Set();
-/** @type {{ maintenanceMode: boolean, maintenanceMessage: string, alertsBannerMessage: string, testDjEnabled: boolean, xpMultiplier: number }} */
+/** @type {{ maintenanceMode: boolean, maintenanceMessage: string, alertsBannerMessage: string, testDjEnabled: boolean, testDjQueueEnabled: boolean, testDjChatEnabled: boolean, xpMultiplier: number }} */
 let settings = {
   maintenanceMode: false,
   maintenanceMessage: '',
   alertsBannerMessage: '',
   testDjEnabled: false,
+  testDjQueueEnabled: false,
+  testDjChatEnabled: false,
   xpMultiplier: 1,
 };
 
@@ -24,13 +26,57 @@ function normalizeXpMultiplier(value) {
   return Math.min(n, MAX_XP_MULTIPLIER);
 }
 
+function resolveTestDjSettingsFromDoc(doc) {
+  const envDefault = getEnvTestDjDefault();
+  const legacy = Boolean(doc?.testDjEnabled);
+
+  let queue = doc?.testDjQueueEnabled;
+  let chat = doc?.testDjChatEnabled;
+
+  if (queue === undefined && chat === undefined) {
+    queue = legacy;
+    chat = legacy;
+  } else {
+    if (queue === undefined) queue = legacy;
+    if (chat === undefined) chat = legacy;
+  }
+
+  if (doc == null) {
+    queue = envDefault;
+    chat = envDefault;
+  }
+
+  queue = Boolean(queue);
+  chat = Boolean(chat);
+
+  return {
+    testDjQueueEnabled: queue,
+    testDjChatEnabled: chat,
+    testDjEnabled: queue || chat,
+  };
+}
+
+function applySettingsFromDoc(doc) {
+  const testDj = resolveTestDjSettingsFromDoc(doc);
+  settings = {
+    maintenanceMode: Boolean(doc?.maintenanceMode),
+    maintenanceMessage: String(doc?.maintenanceMessage || '').trim(),
+    alertsBannerMessage: String(doc?.alertsBannerMessage || '').trim(),
+    ...testDj,
+    xpMultiplier: normalizeXpMultiplier(doc?.xpMultiplier ?? 1),
+  };
+}
+
 async function loadPlatformState() {
   blockedVideoIds = new Set();
+  const envDefault = getEnvTestDjDefault();
   settings = {
     maintenanceMode: false,
     maintenanceMessage: '',
     alertsBannerMessage: '',
-    testDjEnabled: getEnvTestDjDefault(),
+    testDjEnabled: envDefault,
+    testDjQueueEnabled: envDefault,
+    testDjChatEnabled: envDefault,
     xpMultiplier: 1,
   };
 
@@ -45,16 +91,32 @@ async function loadPlatformState() {
   if (!doc) {
     doc = await PlatformSettings.create({
       key: SETTINGS_KEY,
-      testDjEnabled: getEnvTestDjDefault(),
+      testDjEnabled: envDefault,
+      testDjQueueEnabled: envDefault,
+      testDjChatEnabled: envDefault,
     });
+  } else {
+    const resolved = resolveTestDjSettingsFromDoc(doc);
+    const needsMigration =
+      doc.testDjQueueEnabled === undefined ||
+      doc.testDjChatEnabled === undefined ||
+      Boolean(doc.testDjEnabled) !== resolved.testDjEnabled;
+    if (needsMigration) {
+      doc = await PlatformSettings.findOneAndUpdate(
+        { key: SETTINGS_KEY },
+        {
+          $set: {
+            testDjQueueEnabled: resolved.testDjQueueEnabled,
+            testDjChatEnabled: resolved.testDjChatEnabled,
+            testDjEnabled: resolved.testDjEnabled,
+          },
+        },
+        { new: true }
+      );
+    }
   }
-  settings = {
-    maintenanceMode: Boolean(doc.maintenanceMode),
-    maintenanceMessage: String(doc.maintenanceMessage || '').trim(),
-    alertsBannerMessage: String(doc.alertsBannerMessage || '').trim(),
-    testDjEnabled: Boolean(doc.testDjEnabled),
-    xpMultiplier: normalizeXpMultiplier(doc.xpMultiplier ?? 1),
-  };
+
+  applySettingsFromDoc(doc);
 }
 
 function isVideoBlocked(videoId) {
@@ -62,8 +124,16 @@ function isVideoBlocked(videoId) {
   return blockedVideoIds.has(String(videoId));
 }
 
+function isTestDjQueueEnabled() {
+  return Boolean(settings.testDjQueueEnabled);
+}
+
+function isTestDjChatEnabled() {
+  return Boolean(settings.testDjChatEnabled);
+}
+
 function isTestDjEnabled() {
-  return Boolean(settings.testDjEnabled);
+  return isTestDjQueueEnabled() || isTestDjChatEnabled();
 }
 
 function getXpMultiplier() {
@@ -76,6 +146,8 @@ function getPlatformSettings() {
     maintenanceMessage: settings.maintenanceMessage,
     alertsBannerMessage: settings.alertsBannerMessage,
     testDjEnabled: settings.testDjEnabled,
+    testDjQueueEnabled: settings.testDjQueueEnabled,
+    testDjChatEnabled: settings.testDjChatEnabled,
     xpMultiplier: getXpMultiplier(),
     blockedVideoCount: blockedVideoIds.size,
   };
@@ -164,9 +236,36 @@ async function updatePlatformSettings(updates = {}) {
   if (updates.alertsBannerMessage !== undefined) {
     patch.alertsBannerMessage = String(updates.alertsBannerMessage || '').trim().slice(0, 500);
   }
-  if (updates.testDjEnabled !== undefined) {
-    patch.testDjEnabled = Boolean(updates.testDjEnabled);
+
+  let nextQueue = settings.testDjQueueEnabled;
+  let nextChat = settings.testDjChatEnabled;
+
+  if (updates.testDjQueueEnabled !== undefined) {
+    nextQueue = Boolean(updates.testDjQueueEnabled);
   }
+  if (updates.testDjChatEnabled !== undefined) {
+    nextChat = Boolean(updates.testDjChatEnabled);
+  }
+  if (
+    updates.testDjEnabled !== undefined &&
+    updates.testDjQueueEnabled === undefined &&
+    updates.testDjChatEnabled === undefined
+  ) {
+    const legacy = Boolean(updates.testDjEnabled);
+    nextQueue = legacy;
+    nextChat = legacy;
+  }
+
+  if (
+    updates.testDjEnabled !== undefined ||
+    updates.testDjQueueEnabled !== undefined ||
+    updates.testDjChatEnabled !== undefined
+  ) {
+    patch.testDjQueueEnabled = nextQueue;
+    patch.testDjChatEnabled = nextChat;
+    patch.testDjEnabled = Boolean(nextQueue || nextChat);
+  }
+
   if (updates.xpMultiplier !== undefined) {
     const normalized = normalizeXpMultiplier(updates.xpMultiplier);
     if (!Number.isFinite(Number(updates.xpMultiplier)) || Number(updates.xpMultiplier) < 1) {
@@ -181,13 +280,7 @@ async function updatePlatformSettings(updates = {}) {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
-  settings = {
-    maintenanceMode: Boolean(doc.maintenanceMode),
-    maintenanceMessage: String(doc.maintenanceMessage || '').trim(),
-    alertsBannerMessage: String(doc.alertsBannerMessage || '').trim(),
-    testDjEnabled: Boolean(doc.testDjEnabled),
-    xpMultiplier: normalizeXpMultiplier(doc.xpMultiplier ?? 1),
-  };
+  applySettingsFromDoc(doc);
 
   return { ok: true, settings: getPlatformSettings() };
 }
@@ -196,6 +289,8 @@ module.exports = {
   loadPlatformState,
   isVideoBlocked,
   isTestDjEnabled,
+  isTestDjQueueEnabled,
+  isTestDjChatEnabled,
   getXpMultiplier,
   getPlatformSettings,
   getRoomBanner,

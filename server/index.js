@@ -69,6 +69,8 @@ app.get('/health', (_req, res) => {
     online: room.countRealOnlineUsers(),
     nowPlaying: room.nowPlaying?.videoId || null,
     testDj: platform.isTestDjEnabled(),
+    testDjQueue: platform.isTestDjQueueEnabled(),
+    testDjChat: platform.isTestDjChatEnabled(),
     testDjName: platform.isTestDjEnabled() ? TEST_DJ_DISPLAY_NAME : null,
     xpMultiplier: platform.getXpMultiplier(),
   });

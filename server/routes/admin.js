@@ -79,7 +79,11 @@ router.patch('/platform', requireAdmin, async (req, res) => {
     }
     const io = req.app.get('io');
     if (io) {
-      if (result.testDjRoom?.started || result.testDjRoom?.stopped) {
+      if (
+        result.testDjRoom?.started ||
+        result.testDjRoom?.stopped ||
+        result.testDjRoom?.queueEnabled !== undefined
+      ) {
         io.emit('player:sync', room.getPlayerSync());
       }
       io.emit('room:state', room.getRoomState());

@@ -75,20 +75,28 @@ class Room {
 
     await testDjAccount.ensureTestDjAccountInDb();
     await this._refreshTestDjPresence();
-    await this._ensureTestDjQueueEntry();
-    testDjChat.start();
+    if (platform.isTestDjQueueEnabled()) {
+      await this._ensureTestDjQueueEntry();
+    }
+    if (platform.isTestDjChatEnabled()) {
+      testDjChat.start();
+    }
     return { ok: true };
   }
 
   async _refreshTestDjPresence() {
-    if (!platform.isTestDjEnabled()) return;
+    if (!platform.isTestDjQueueEnabled() && !platform.isTestDjChatEnabled()) {
+      this.users.delete(TEST_DJ_SOCKET_ID);
+      return;
+    }
     const userId = testDjAccount.getTestDjUserId();
     if (!userId) return;
 
     const profile = await testDjAccount.loadTestDjProfile();
     const existing = this.users.get(TEST_DJ_SOCKET_ID);
     const inQueue = Boolean(
-      existing?.inQueue || this._findQueueEntryByUserId(userId)
+      platform.isTestDjQueueEnabled() &&
+        (existing?.inQueue || this._findQueueEntryByUserId(userId))
     );
 
     this.users.set(TEST_DJ_SOCKET_ID, {
@@ -109,7 +117,7 @@ class Room {
   }
 
   async _ensureTestDjQueueEntry() {
-    if (!platform.isTestDjEnabled() || !isDbConnected()) return { ensured: false };
+    if (!platform.isTestDjQueueEnabled() || !isDbConnected()) return { ensured: false };
 
     const userId = testDjAccount.getTestDjUserId();
     if (!userId) return { ensured: false };
@@ -161,7 +169,7 @@ class Room {
     return { ensured: true, started: false };
   }
 
-  _removeTestDjFromRoom() {
+  _removeTestDjFromQueue() {
     const userId = testDjAccount.getTestDjUserId();
     if (userId) {
       const idx = this.djQueue.findIndex((entry) => entry.userId === userId);
@@ -170,6 +178,12 @@ class Room {
         this._syncUserInQueueFlags(userId, false);
       }
     }
+    const virtual = this.users.get(TEST_DJ_SOCKET_ID);
+    if (virtual) virtual.inQueue = false;
+  }
+
+  _removeTestDjFromRoom() {
+    this._removeTestDjFromQueue();
     this.users.delete(TEST_DJ_SOCKET_ID);
   }
 
@@ -958,7 +972,7 @@ class Room {
 
   /** Post a chat line as Bob McCluckn (system-controlled test DJ). */
   addChatAsBob(text) {
-    if (!platform.isTestDjEnabled()) return { error: 'Test DJ disabled' };
+    if (!platform.isTestDjChatEnabled()) return { error: 'Test DJ chat disabled' };
     const user = this.users.get(TEST_DJ_SOCKET_ID);
     if (!user?.userId) return { error: 'Test DJ not present' };
 
@@ -1364,7 +1378,7 @@ class Room {
     const isBob = testDjAccount.isTestDjUserId(entry.userId);
     const played = this._resolvePlayedQueueTrack(entry, finished);
     if (!played) {
-      if (isBob && platform.isTestDjEnabled()) {
+      if (isBob && platform.isTestDjQueueEnabled()) {
         entry.playlistItems = getTestDjPlaylistItems();
         entry.trackIndex = 0;
       } else {
@@ -1390,7 +1404,7 @@ class Room {
     }
 
     if (!entry.playlistItems.length) {
-      if (isBob && platform.isTestDjEnabled()) {
+      if (isBob && platform.isTestDjQueueEnabled()) {
         entry.playlistItems = getTestDjPlaylistItems();
         entry.trackIndex = 0;
       } else {
@@ -1400,7 +1414,7 @@ class Room {
     }
 
     if (!this._isUserOnline(entry.userId)) {
-      if (isBob && platform.isTestDjEnabled()) {
+      if (isBob && platform.isTestDjQueueEnabled()) {
         // Bob stays queued while the admin toggle is on.
       } else {
         this._removeQueueEntryByUserId(entry.userId);
@@ -1426,7 +1440,7 @@ class Room {
       const isBob = testDjAccount.isTestDjUserId(entry.userId);
 
       if (!this._isUserOnline(entry.userId)) {
-        if (isBob && platform.isTestDjEnabled()) {
+        if (isBob && platform.isTestDjQueueEnabled()) {
           // Bob remains at the head when enabled.
         } else {
           this.djQueue.shift();
@@ -1438,7 +1452,7 @@ class Room {
 
       const synced = await this._syncQueueEntryToActivePlaylist(entry);
       if (!synced) {
-        if (isBob && platform.isTestDjEnabled()) {
+        if (isBob && platform.isTestDjQueueEnabled()) {
           entry.playlistItems = getTestDjPlaylistItems();
           entry.trackIndex = 0;
         } else {
@@ -1451,7 +1465,7 @@ class Room {
 
       let track = entry.playlistItems[entry.trackIndex];
       if (!track) {
-        if (isBob && platform.isTestDjEnabled()) {
+        if (isBob && platform.isTestDjQueueEnabled()) {
           entry.playlistItems = getTestDjPlaylistItems();
           entry.trackIndex = 0;
           track = entry.playlistItems[0];
@@ -1508,7 +1522,7 @@ class Room {
       return false;
     }
 
-    if (platform.isTestDjEnabled()) {
+    if (platform.isTestDjQueueEnabled()) {
       await this._ensureTestDjQueueEntry();
       if (this.djQueue.length) {
         return this._startQueueHead({ interruptCurrent: false });
@@ -1524,8 +1538,15 @@ class Room {
     if (this._countRealOnlineUsers() === 0) return { ok: false, reason: 'no_audience' };
     if (this.nowPlaying) return { ok: true, started: false };
 
-    testDjChat.start();
+    if (platform.isTestDjChatEnabled()) {
+      testDjChat.start();
+    }
     await this._refreshTestDjPresence();
+
+    if (!platform.isTestDjQueueEnabled()) {
+      return { ok: true, started: false, reason: 'chat_only' };
+    }
+
     const ensured = await this._ensureTestDjQueueEntry();
     if (!this.djQueue.length) {
       return { ok: true, started: false, reason: 'queue_unavailable' };
@@ -1537,18 +1558,45 @@ class Room {
     return { ok: true, started: false };
   }
 
-  /** Apply runtime Test DJ toggle from admin platform settings. */
-  async applyTestDjSetting(enabled) {
-    if (enabled) {
-      if (!isDbConnected()) {
-        return { ok: false, error: 'Database required for Test DJ' };
-      }
-      await testDjAccount.ensureTestDjAccountInDb();
-      await this._refreshTestDjPresence();
-      const ensured = await this._ensureTestDjQueueEntry();
-      testDjChat.start();
+  /** Apply runtime Bob settings from platform settings (queue and/or chat). */
+  async applyTestDjSettings() {
+    const queueOn = platform.isTestDjQueueEnabled();
+    const chatOn = platform.isTestDjChatEnabled();
 
-      let started = Boolean(ensured.started);
+    if (!queueOn && !chatOn) {
+      const wasPlayingTestDj = this._isTestDjPlaying();
+      this._removeTestDjFromRoom();
+      testDjChat.stop();
+
+      if (wasPlayingTestDj) {
+        this._clearTrackEndTimer();
+        this.nowPlaying = null;
+        if (this.djQueue.length) {
+          await this._startQueueHead({ interruptCurrent: false });
+        }
+      }
+
+      return {
+        ok: true,
+        queueEnabled: false,
+        chatEnabled: false,
+        stopped: wasPlayingTestDj,
+      };
+    }
+
+    if (!isDbConnected()) {
+      return { ok: false, error: 'Database required for Test DJ' };
+    }
+
+    await testDjAccount.ensureTestDjAccountInDb();
+    await this._refreshTestDjPresence();
+
+    let started = false;
+    let stopped = false;
+
+    if (queueOn) {
+      const ensured = await this._ensureTestDjQueueEntry();
+      started = Boolean(ensured.started);
       if (
         !started &&
         this._countRealOnlineUsers() > 0 &&
@@ -1557,23 +1605,37 @@ class Room {
       ) {
         started = await this._startQueueHead({ interruptCurrent: false });
       }
-
-      return { ok: true, enabled: true, started: Boolean(started) };
-    }
-
-    const wasPlayingTestDj = this._isTestDjPlaying();
-    this._removeTestDjFromRoom();
-    testDjChat.stop();
-
-    if (wasPlayingTestDj) {
-      this._clearTrackEndTimer();
-      this.nowPlaying = null;
-      if (this.djQueue.length) {
-        await this._startQueueHead({ interruptCurrent: false });
+    } else {
+      const wasPlayingTestDj = this._isTestDjPlaying();
+      this._removeTestDjFromQueue();
+      if (wasPlayingTestDj) {
+        stopped = true;
+        this._clearTrackEndTimer();
+        this.nowPlaying = null;
+        if (this.djQueue.length) {
+          await this._startQueueHead({ interruptCurrent: false });
+        }
       }
     }
 
-    return { ok: true, enabled: false, stopped: wasPlayingTestDj };
+    if (chatOn) {
+      testDjChat.start();
+    } else {
+      testDjChat.stop();
+    }
+
+    return {
+      ok: true,
+      queueEnabled: queueOn,
+      chatEnabled: chatOn,
+      started,
+      stopped,
+    };
+  }
+
+  /** @deprecated Use applyTestDjSettings — kept for callers passing a single legacy flag */
+  async applyTestDjSetting(enabled) {
+    return this.applyTestDjSettings();
   }
 
   validateClientTrackEnd(socketId, payload = {}) {

@@ -159,16 +159,15 @@ const ITVOwnerPanel = (() => {
       }
     });
 
-    bodyEl.querySelector('#owner-test-dj-toggle')?.addEventListener('change', async (e) => {
-      const toggle = e.currentTarget;
+    const patchBobSetting = async (toggle, field, label) => {
       toggle.disabled = true;
       try {
         await api('/platform', {
           method: 'PATCH',
-          body: JSON.stringify({ testDjEnabled: toggle.checked }),
+          body: JSON.stringify({ [field]: toggle.checked }),
         });
-        setStatus(`Test DJ ${toggle.checked ? 'enabled' : 'disabled'}`);
-        toast(`Test DJ ${toggle.checked ? 'on' : 'off'}`);
+        setStatus(`Bob ${label} ${toggle.checked ? 'on' : 'off'}`);
+        toast(`Bob ${label} ${toggle.checked ? 'enabled' : 'disabled'}`);
         await render();
       } catch (err) {
         toggle.checked = !toggle.checked;
@@ -176,6 +175,14 @@ const ITVOwnerPanel = (() => {
       } finally {
         toggle.disabled = false;
       }
+    };
+
+    bodyEl.querySelector('#owner-test-dj-queue-toggle')?.addEventListener('change', async (e) => {
+      await patchBobSetting(e.currentTarget, 'testDjQueueEnabled', 'queue');
+    });
+
+    bodyEl.querySelector('#owner-test-dj-chat-toggle')?.addEventListener('change', async (e) => {
+      await patchBobSetting(e.currentTarget, 'testDjChatEnabled', 'chat');
     });
   }
 
@@ -288,8 +295,14 @@ const ITVOwnerPanel = (() => {
         </div>
         <div class="admin-tools__row admin-tools__row--checkbox">
           <label class="admin-tools__checkbox">
-            <input type="checkbox" id="owner-test-dj-toggle"${platform.testDjEnabled ? ' checked' : ''} />
-            Test DJ (Bob McCluckn)
+            <input type="checkbox" id="owner-test-dj-queue-toggle"${platform.testDjQueueEnabled ? ' checked' : ''} />
+            Bob in DJ queue
+          </label>
+        </div>
+        <div class="admin-tools__row admin-tools__row--checkbox">
+          <label class="admin-tools__checkbox">
+            <input type="checkbox" id="owner-test-dj-chat-toggle"${platform.testDjChatEnabled ? ' checked' : ''} />
+            Bob in chat
           </label>
         </div>
       </section>

@@ -72,7 +72,17 @@ const ITVStaffAuditUI = (() => {
       if (d.previousMaintenanceMode !== d.maintenanceMode) {
         parts.push(d.maintenanceMode ? 'Maintenance on' : 'Maintenance off');
       }
-      if (d.previousTestDjEnabled !== d.testDjEnabled) {
+      if (d.previousTestDjQueueEnabled !== d.testDjQueueEnabled) {
+        parts.push(d.testDjQueueEnabled ? 'Bob queue on' : 'Bob queue off');
+      }
+      if (d.previousTestDjChatEnabled !== d.testDjChatEnabled) {
+        parts.push(d.testDjChatEnabled ? 'Bob chat on' : 'Bob chat off');
+      }
+      if (
+        d.previousTestDjEnabled !== d.testDjEnabled &&
+        d.previousTestDjQueueEnabled === undefined &&
+        d.previousTestDjChatEnabled === undefined
+      ) {
         parts.push(d.testDjEnabled ? 'Bob ON' : 'Bob OFF');
       }
       if (parts.length) return parts.join(' · ');

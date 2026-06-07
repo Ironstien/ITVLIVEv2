@@ -46,7 +46,7 @@ function configure({ room, broadcast }) {
 
 function start() {
   stopIdleTimer();
-  if (!platform.isTestDjEnabled()) return;
+  if (!platform.isTestDjChatEnabled()) return;
   idleTimer = setInterval(tickIdleChat, IDLE_INTERVAL_MS);
 }
 
@@ -71,7 +71,7 @@ function stopIdleTimer() {
 }
 
 function tickIdleChat() {
-  if (!roomRef || !platform.isTestDjEnabled()) return;
+  if (!roomRef || !platform.isTestDjChatEnabled()) return;
   if (roomRef.countRealOnlineUsers() === 0) return;
   if (Math.random() > IDLE_CHANCE) return;
   const result = roomRef.addChatAsBob(pickRandom(IDLE_LINES));
@@ -79,14 +79,14 @@ function tickIdleChat() {
 }
 
 function onUserChat(message) {
-  if (!roomRef || !platform.isTestDjEnabled() || !message?.text) return;
+  if (!roomRef || !platform.isTestDjChatEnabled() || !message?.text) return;
   if (isTestDjUserId(message.userId)) return;
   if (!MENTION_RE.test(message.text)) return;
 
   if (pendingReplyTimer) clearTimeout(pendingReplyTimer);
   pendingReplyTimer = setTimeout(() => {
     pendingReplyTimer = null;
-    if (!platform.isTestDjEnabled()) return;
+    if (!platform.isTestDjChatEnabled()) return;
     const result = roomRef.addChatAsBob(pickRandom(MENTION_REPLIES));
     if (result?.ok && broadcastFn) broadcastFn();
   }, MENTION_REPLY_DELAY_MS);
@@ -102,7 +102,7 @@ function scheduleNextCompliment() {
 
   complimentTimer = setTimeout(() => {
     complimentTimer = null;
-    if (!platform.isTestDjEnabled()) {
+    if (!platform.isTestDjChatEnabled()) {
       complimentQueue = [];
       return;
     }
@@ -113,7 +113,7 @@ function scheduleNextCompliment() {
 }
 
 function onBadgeEarned({ userId, displayName, badgeName }) {
-  if (!roomRef || !platform.isTestDjEnabled()) return;
+  if (!roomRef || !platform.isTestDjChatEnabled()) return;
   if (!userId || isTestDjUserId(userId)) return;
 
   complimentQueue.push({

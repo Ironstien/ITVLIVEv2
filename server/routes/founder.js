@@ -45,6 +45,8 @@ router.get('/stats', async (_req, res) => {
       platform: {
         maintenanceMode: settings.maintenanceMode,
         testDjEnabled: settings.testDjEnabled,
+        testDjQueueEnabled: settings.testDjQueueEnabled,
+        testDjChatEnabled: settings.testDjChatEnabled,
       },
       room: {
         nowPlaying: room.nowPlaying
@@ -66,10 +68,12 @@ router.get('/stats', async (_req, res) => {
 
 router.patch('/platform', async (req, res) => {
   try {
-    const { maintenanceMode, testDjEnabled } = req.body || {};
+    const { maintenanceMode, testDjEnabled, testDjQueueEnabled, testDjChatEnabled } = req.body || {};
     const updates = {};
     if (maintenanceMode !== undefined) updates.maintenanceMode = Boolean(maintenanceMode);
     if (testDjEnabled !== undefined) updates.testDjEnabled = Boolean(testDjEnabled);
+    if (testDjQueueEnabled !== undefined) updates.testDjQueueEnabled = Boolean(testDjQueueEnabled);
+    if (testDjChatEnabled !== undefined) updates.testDjChatEnabled = Boolean(testDjChatEnabled);
     if (!Object.keys(updates).length) {
       res.status(400).json({ error: 'No platform fields to update' });
       return;
@@ -83,7 +87,11 @@ router.patch('/platform', async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      if (result.testDjRoom?.started || result.testDjRoom?.stopped) {
+      if (
+        result.testDjRoom?.started ||
+        result.testDjRoom?.stopped ||
+        result.testDjRoom?.queueEnabled !== undefined
+      ) {
         io.emit('player:sync', getPlayerSyncPayload());
       }
       broadcastRoom(io);

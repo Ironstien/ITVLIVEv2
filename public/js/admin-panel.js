@@ -146,15 +146,21 @@ const ITVAdminPanel = (() => {
     });
 
     bodyEl.querySelector('#panel-test-dj-save')?.addEventListener('click', async (btn) => {
-      const toggle = bodyEl.querySelector('#panel-test-dj-enabled');
+      const queueToggle = bodyEl.querySelector('#panel-test-dj-queue-enabled');
+      const chatToggle = bodyEl.querySelector('#panel-test-dj-chat-enabled');
       btn.currentTarget.disabled = true;
       try {
         const result = await updatePlatform({
-          testDjEnabled: Boolean(toggle?.checked),
+          testDjQueueEnabled: Boolean(queueToggle?.checked),
+          testDjChatEnabled: Boolean(chatToggle?.checked),
         });
         const started = result.testDjRoom?.started;
         const stopped = result.testDjRoom?.stopped;
-        let msg = result.settings?.testDjEnabled ? 'Bob McCluckn enabled' : 'Bob McCluckn disabled';
+        const s = result.settings || {};
+        const parts = [];
+        parts.push(`Bob queue ${s.testDjQueueEnabled ? 'on' : 'off'}`);
+        parts.push(`Bob chat ${s.testDjChatEnabled ? 'on' : 'off'}`);
+        let msg = parts.join(' · ');
         if (started) msg += ' — now playing';
         if (stopped) msg += ' — playback stopped';
         toast(msg);
@@ -623,17 +629,22 @@ const ITVAdminPanel = (() => {
       <section class="admin-tools__section">
         <h3 class="admin-tools__heading">Test DJ — Bob McCluckn</h3>
         <p class="admin-tools__hint muted">
-          When enabled, Bob McCluckn appears as a regular user in the room and DJ queue. He rotates like any other DJ,
-          earns XP and badges organically, and keeps the stage moving when listeners are present. He cannot be logged
-          into — only this toggle controls him. When disabled, he leaves the room and queue entirely.
+          Bob is a system account — he cannot log in. Enable queue and/or chat independently. Queue: rotates like any DJ,
+          earns XP and badges, keeps the stage moving. Chat: idle lines, @bob replies, and badge compliments.
         </p>
         <div class="admin-tools__row admin-tools__row--checkbox">
           <label class="admin-tools__checkbox">
-            <input type="checkbox" id="panel-test-dj-enabled"${settings.testDjEnabled ? ' checked' : ''} />
-            Bob McCluckn ON
+            <input type="checkbox" id="panel-test-dj-queue-enabled"${settings.testDjQueueEnabled ? ' checked' : ''} />
+            Bob in DJ queue
           </label>
         </div>
-        <button type="button" class="modal-action-btn auth-submit" id="panel-test-dj-save">Save Test DJ setting</button>
+        <div class="admin-tools__row admin-tools__row--checkbox">
+          <label class="admin-tools__checkbox">
+            <input type="checkbox" id="panel-test-dj-chat-enabled"${settings.testDjChatEnabled ? ' checked' : ''} />
+            Bob in chat
+          </label>
+        </div>
+        <button type="button" class="modal-action-btn auth-submit" id="panel-test-dj-save">Save Bob settings</button>
       </section>
 
       <section class="admin-tools__section">
