@@ -1038,7 +1038,7 @@ class Room {
       kind: 'level-up',
       displayName: name,
       level: lvl,
-      text: `Ding!!! Grats ${name} on level ${lvl}!!!`,
+      text: `Ding!!! Grats ${name} on level ${lvl}.`,
       at: Date.now(),
     };
     this.chat.push(msg);
