@@ -1745,6 +1745,70 @@
   margin: 1rem 0 0;
 }
 
+.about-mixlr {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--void-border);
+  border-radius: var(--radius);
+}
+
+.about-mixlr__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--purple-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.about-mixlr__logos {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.about-mixlr__logo {
+  display: block;
+  border-radius: var(--radius);
+}
+
+.about-mixlr__logo--itv {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+}
+
+.about-mixlr__logo--mixlr {
+  width: 72px;
+  height: auto;
+  padding: 0.35rem;
+  background: #fff;
+  border-radius: var(--radius);
+}
+
+.about-mixlr__desc {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  color: var(--grey-muted);
+  line-height: 1.45;
+}
+
+.about-mixlr__link-wrap {
+  margin: 0;
+}
+
+.about-mixlr__link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--purple-bright);
+  text-decoration: none;
+}
+
+.about-mixlr__link:hover {
+  text-decoration: underline;
+}
+
 .help-toc {
   display: flex;
   flex-wrap: wrap;

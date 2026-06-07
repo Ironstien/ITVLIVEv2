@@ -307,7 +307,7 @@ Another Title https://youtu.be/VIDEO_ID</pre>
           ${renderBadges(data)}
         </section>
 
-        <p class="help-footer muted">Need the short version? See <button type="button" class="help-inline-link" data-open-modal="about">About Us</button> in the nav.</p>`;
+        <p class="help-footer muted">Need the short version? See <button type="button" class="help-inline-link" data-open-modal="about">About ITV</button> in the nav.</p>`;
     } catch (err) {
       el.innerHTML = `<p class="modal-card__lead muted">${escapeHtml(err.message || 'Failed to load help')}</p>`;
     }
