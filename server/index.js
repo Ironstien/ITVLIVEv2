@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./services/serverLog').install();
 
 const http = require('http');
 const path = require('path');

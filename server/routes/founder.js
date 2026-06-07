@@ -12,6 +12,7 @@ const {
   resetUserProgress,
   nuclearWipeAllUsers,
 } = require('../services/founder');
+const serverLog = require('../services/serverLog');
 const {
   room,
   emitUserProgress,
@@ -59,6 +60,7 @@ router.get('/stats', async (_req, res) => {
         queueLength: room.djQueue?.length ?? 0,
         chatLength: room.chat?.length ?? 0,
       },
+      serverLogs: serverLog.getMeta(),
     });
   } catch (err) {
     console.error('[founder] stats failed:', err.message);
@@ -101,6 +103,29 @@ router.patch('/platform', async (req, res) => {
   } catch (err) {
     console.error('[founder] platform update failed:', err.message);
     res.status(500).json({ error: 'Failed to update platform settings' });
+  }
+});
+
+router.get('/logs/download', (_req, res) => {
+  try {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `itvlive-server-log-${stamp}.txt`;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(serverLog.exportText());
+  } catch (err) {
+    console.error('[founder] log download failed:', err.message);
+    res.status(500).json({ error: 'Failed to export server logs' });
+  }
+});
+
+router.post('/logs/clear', (_req, res) => {
+  try {
+    serverLog.clear();
+    res.json({ ok: true, serverLogs: serverLog.getMeta() });
+  } catch (err) {
+    console.error('[founder] log clear failed:', err.message);
+    res.status(500).json({ error: 'Failed to clear server logs' });
   }
 });
 

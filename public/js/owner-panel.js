@@ -95,6 +95,78 @@ const ITVOwnerPanel = (() => {
     });
   }
 
+  function formatBytes(bytes) {
+    const n = Number(bytes) || 0;
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function formatLogStartedAt(ts) {
+    if (!ts) return 'unknown';
+    try {
+      return new Date(ts).toLocaleString();
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  async function downloadServerLogs() {
+    const res = await fetch('/api/founder/logs/download', {
+      headers: {
+        ...ITVAuth.authHeaders(),
+      },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || res.statusText || 'Download failed');
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="([^"]+)"/);
+    link.href = url;
+    link.download = match?.[1] || `itvlive-server-log-${Date.now()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function bindLogActions() {
+    bodyEl.querySelector('#owner-download-logs')?.addEventListener('click', async (btn) => {
+      btn.currentTarget.disabled = true;
+      try {
+        await downloadServerLogs();
+        setStatus('Server log downloaded');
+        toast('Server log downloaded');
+      } catch (err) {
+        toast(err.message, true);
+        setStatus(`Log download failed: ${err.message}`);
+      } finally {
+        btn.currentTarget.disabled = false;
+      }
+    });
+
+    bodyEl.querySelector('#owner-clear-logs')?.addEventListener('click', async (btn) => {
+      if (!window.confirm('Clear the in-memory server log buffer?')) return;
+      btn.currentTarget.disabled = true;
+      try {
+        const result = await api('/logs/clear', { method: 'POST' });
+        const meta = result.serverLogs || {};
+        setStatus(`Cleared server logs (${meta.count ?? 0} entries remain)`);
+        toast('Server log buffer cleared');
+        await render();
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        btn.currentTarget.disabled = false;
+      }
+    });
+  }
+
   function bindLiveActions() {
     bodyEl.querySelector('#owner-clear-chat')?.addEventListener('click', async (btn) => {
       if (!window.confirm('Clear all live chat messages on stage?')) return;
@@ -268,6 +340,7 @@ const ITVOwnerPanel = (() => {
     const counts = data.counts || {};
     const platform = data.platform || {};
     const room = data.room || {};
+    const logMeta = data.serverLogs || {};
     const np = room.nowPlaying;
     const nowPlayingLabel = np
       ? `${np.djName || 'DJ'} — ${np.title || np.videoId || ''}`
@@ -304,6 +377,23 @@ const ITVOwnerPanel = (() => {
             <input type="checkbox" id="owner-test-dj-chat-toggle"${platform.testDjChatEnabled ? ' checked' : ''} />
             Bob in chat
           </label>
+        </div>
+      </section>
+
+      <section class="admin-tools__section">
+        <h3 class="admin-tools__heading">Server logs</h3>
+        <p class="admin-tools__hint muted">
+          In-memory console output since this process started (${escapeHtml(formatLogStartedAt(logMeta.startedAt))}).
+          ${escapeHtml(String(logMeta.count ?? 0))} / ${escapeHtml(String(logMeta.maxEntries ?? 5000))} lines
+          · ${escapeHtml(formatBytes(logMeta.approxBytes))}
+          ${logMeta.droppedCount ? ` · ${escapeHtml(String(logMeta.droppedCount))} older line(s) dropped` : ''}
+        </p>
+        <p class="admin-tools__hint muted">
+          Useful for debugging DJ queue drops, disconnects, and track-end events. Logs reset when the server restarts.
+        </p>
+        <div class="admin-tools__actions">
+          <button type="button" class="modal-action-btn auth-submit" id="owner-download-logs"${logMeta.count ? '' : ' disabled'}>Download log file</button>
+          <button type="button" class="modal-action-btn auth-submit modal-action-btn--danger" id="owner-clear-logs"${logMeta.count ? '' : ' disabled'}>Clear log buffer</button>
         </div>
       </section>
 
@@ -362,6 +452,7 @@ const ITVOwnerPanel = (() => {
     `;
 
     bindLiveActions();
+    bindLogActions();
     bindNuclearWipe();
     bindResetRow('songs', '/reset/songs', 'RESET_SONGS', 'Song data');
     bindResetRow('votes', '/reset/votes', 'RESET_VOTES', 'Vote data');
